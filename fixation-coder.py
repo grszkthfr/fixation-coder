@@ -12,6 +12,10 @@ log_file = "validierung3/log_2019-01-09_" + sys.argv[1] + ".txt"
 ss_dir = "validierung3/frames/" + sys.argv[1] + "/" 
 out_dir = "validierung3/output/"
 
+# # window full screen
+# cv2.namedWindow("window", cv2.WND_PROP_FULLSCREEN)
+# cv2.setWindowProperty("window",cv2.WND_PROP_FULLSCREEN,cv2.WINDOW_FULLSCREEN)
+
 all_x = []
 all_y = []
 
@@ -71,7 +75,7 @@ with open(log_file, 'r') as f:
             sml_img = cv2.resize(img, (0,0), fx=0.25, fy=0.25)
 
             while(1):
-                cv2.imshow('image', sml_img)
+                cv2.imshow('window', img)
 
                 k = cv2.waitKey(33)
                 if k==27:    # Esc key to stop
