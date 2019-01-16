@@ -75,7 +75,7 @@ with open(log_file, 'r') as f:
             sml_img = cv2.resize(img, (0,0), fx=0.25, fy=0.25)
 
             while(1):
-                cv2.imshow('window', img)
+                cv2.imshow('window', sml_img)
 
                 k = cv2.waitKey(33)
                 if k==27:    # Esc key to stop
