@@ -9,10 +9,10 @@ import numpy as np
 
 # directories
 #log_file = "pilot_99/log_2019-01-09_" + sys.argv[1] + ".txt"
-log_file = "pilot_99/log_2019-01-17_99_val_black_1_1.txt"
+log_file = "log/pilot_99/log_2019-01-17_99_val_black_1_1.txt"
 #frame_dir = "pilot_99/frames/" + sys.argv[1] + "/"
-frame_dir = "pilot_99/frames/val_black_1_1/"  
-out_dir = "pilot_99/data/"
+frame_dir = "log/pilot_99/frames/val_black_1_1/"  
+out_dir = "data/pilot_99/"
 
 # # window full screen
 # cv2.namedWindow("window", cv2.WND_PROP_FULLSCREEN)
