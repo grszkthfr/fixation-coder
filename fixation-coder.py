@@ -9,9 +9,9 @@ import numpy as np
 
 # directories
 #log_file = "pilot_99/log_2019-01-09_" + sys.argv[1] + ".txt"
-log_file = "pilot_99/log_2019-01-17_99_1.22.2_Teil2.txt"
+log_file = "pilot_99/log_2019-01-17_99_val_black_1_1.txt"
 #frame_dir = "pilot_99/frames/" + sys.argv[1] + "/"
-frame_dir = "pilot_99/frames/1.22.2_Teil2/"  
+frame_dir = "pilot_99/frames/val_black_1_1/"  
 out_dir = "pilot_99/data/"
 
 # # window full screen
@@ -26,7 +26,8 @@ with open(log_file, 'r') as f:
     all_frames = list(reader)
     #print(all_frames[:2])
     for row in all_frames[1:]:
-        if (int(row[3]) % 6 == 0 and int(row[3]) > 227): #and (row[4] != "0" and row[5] != "0"): # ignoring first 5 seconds of vid
+        if (int(row[3]) % 6 == 0 and int(row[3]) > 227): 
+        # for real data when every 10th frame: if (int(row[3]) % 10 == 0 and int(row[3]) >= 230): #and (row[4] != "0" and row[5] != "0"): # ignoring first 5 seconds of vid
             #print(row)
             print(row[3] + ".ppm\n" + row[4] + "," + row[5])
             frame = frame_dir + "frame_" + row[3] + ".ppm"
@@ -58,7 +59,7 @@ with open(log_file, 'r') as f:
             # else:
             #     cv2.putText(img,"collor detection failed", (10, 200), cv2.FONT_HERSHEY_SIMPLEX, 3, (0,0,0), 3)
 
-            cv2.circle(img, screenPos, 3, (0,255,255), 2)
+            cv2.circle(img, screenPos, 1, (0,255,255), 4)
             
             # dist = int(round(math.sqrt((screenPos[0]-960)**2 + (screenPos[0]-540)**2)))
 
