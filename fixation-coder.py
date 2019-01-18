@@ -8,9 +8,11 @@ import math
 import numpy as np
 
 # directories
-log_file = "validierung3/log_2019-01-09_" + sys.argv[1] + ".txt"
-ss_dir = "validierung3/frames/" + sys.argv[1] + "/" 
-out_dir = "validierung3/output/"
+#log_file = "pilot_99/log_2019-01-09_" + sys.argv[1] + ".txt"
+log_file = "pilot_99/log_2019-01-17_99_1.22.2_Teil2.txt"
+#frame_dir = "pilot_99/frames/" + sys.argv[1] + "/"
+frame_dir = "pilot_99/frames/1.22.2_Teil2/"  
+out_dir = "pilot_99/data/"
 
 # # window full screen
 # cv2.namedWindow("window", cv2.WND_PROP_FULLSCREEN)
@@ -22,15 +24,18 @@ all_y = []
 with open(log_file, 'r') as f:
     reader = csv.reader(f, delimiter='\t')
     all_frames = list(reader)
+    #print(all_frames[:2])
     for row in all_frames[1:]:
-        if (int(row[3]) % 6 == 0) and (row[5] != "0" and row[6] != "0"):
-            print(row[3] + ".ppm")
-            frame = ss_dir + "frame_" + row[3] + ".ppm"
+        if (int(row[3]) % 6 == 0 and int(row[3]) > 227): #and (row[4] != "0" and row[5] != "0"): # ignoring first 5 seconds of vid
+            #print(row)
+            print(row[3] + ".ppm\n" + row[4] + "," + row[5])
+            frame = frame_dir + "frame_" + row[3] + ".ppm"
             print(frame)
             img = cv2.imread(frame)
                     
-            screenPos = (int(float(row[5])/1), int(float(row[6])/1)) # 216
+            screenPos = (int(float(row[4])/2), int(float(row[5])/2)) # 216
             
+
             # ## WIP: color detection; try to find gaze by smi
             # lower = np.array([7,71,90], dtype = "uint8")
             # upper = np.array([10,75,100], dtype = "uint8")
@@ -66,13 +71,12 @@ with open(log_file, 'r') as f:
             all_x.append(screenPos[0])
             all_y.append(screenPos[1])
 
-            print("(" + row[5] + ", " + row[6] + ")")
             # print(min(all_x))
             # print(max(all_x))
             # print(min(all_y))
             # print(max(all_y))
 
-            sml_img = cv2.resize(img, (0,0), fx=0.25, fy=0.25)
+            sml_img = cv2.resize(img, (0,0), fx=1, fy=1)
 
             while(1):
                 cv2.imshow('window', sml_img)
