@@ -8,9 +8,11 @@ import cv2
 # import numpy as np
 
 #APP
-# from PyQt5.QtCore import *
-# from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QDialog,QLineEdit, QMenu # QPushButton, QLineEdit
+from PyQt5.QtCore import *
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QDialog,QLineEdit, QMenu # QPushButton, QLineEdit
 
+from PyQt5.QtWidgets import QApplication, QWidget, QLabel
+from PyQt5.QtGui import QIcon, QPixmap
 
 LOG_FILE = "log_2019-01-25_01_val_1_1.txt"
 
@@ -42,8 +44,12 @@ def get_frames_img():
     print("Handled img of frame")
 
 
-def get_frames_log():
+def get_frames_log(log_file):
     print("Handled log of frame")
+
+
+def load_log(log_file):
+    print("Loaded log file")
 
 
 def drawFixation(log_file, frame_directory = "frames"):
@@ -64,7 +70,7 @@ def drawFixation(log_file, frame_directory = "frames"):
         ALL_FRAMES = list(READER)
 
         # print(ALL_FRAMES[:2])
-        for row in ALL_FRAMES[1:]:
+        for row in ALL_FRAMES[1:]:      # except header
 
             if (int(row[3]) % 10 == 0 and int(row[3]) >= 230):
 
@@ -81,18 +87,9 @@ def drawFixation(log_file, frame_directory = "frames"):
 
                 img = cv2.flip(img, 0)  # 0 = horizontal, 1 = vertical, -1 = both
 
-                cv2.imshow("frame", img)
+                #cv2.imshow("frame", img)
 
-                # k = cv2.waitKey(33)
-
-                # if k == 27:    # Esc key to stop
-                #     break
-
-                # elif k == -1:  # normally -1 returned,so don't print it
-                #     continue
-                # else:
-                #     print(repr(chr(k % 256)))
-                #     break  # else print its value
+                return(img)
 
                 next_frame = True
                 while next_frame:
@@ -131,7 +128,7 @@ def drawFixation(log_file, frame_directory = "frames"):
 #     button = QPushButton(win)
 #     button.setText("Hello World!")
 #     button.move(50, 50)
-#     button.clicked.connect(showdialog)
+#     button.clicked.connect(showimg)
 
 #     # textbox
 #     textbox = QLineEdit(win)
@@ -142,35 +139,50 @@ def drawFixation(log_file, frame_directory = "frames"):
 #     textbox.move(20, 20)
 #     textbox.resize(280, 40)
 
-#     # dropdown
-#     menu = QMenu()
+#     # # dropdown
+#     # menu = QMenu()
     
-#     sub_menu = QMenu("Sub Menu")
-#     for i in ["a", "b", "c"]: #or your dict
-#         sub_menu.addAction(i) #it is just a regular QMenu
+#     # # sub_menu = QMenu("Sub Menu")
+#     # # for i in ["a", "b", "c"]: #or your dict
+#     # #     sub_menu.addAction(i) #it is just a regular QMenu
 
-#     win.addMenu(sub_menu)
+#     # win.addMenu(sub_menu)
 
 #     win.setWindowTitle("Fixation Coder App")
 #     win.show()
 #     sys.exit(app.exec_())
 
+# def showimg():
+#     app = QApplication(sys.argv)
+#     win = QWidget()
+#     #setWindowTitle("Frame")
+#     #setGeometry(self.left, self.top, self.width, self.height)
+      
+#     # Create widget
+#     label = QLabel()
+#     pixmap = QPixmap('log//subject_01//frames//val_1_1//val_1_1_frame_00370.ppm')
+#     label.setPixmap(pixmap)
+#     win.resize(pixmap.width(),pixmap.height())
+      
+#     win.show()
+#     #sys.exit(app.exec_())
 
-# # # Create textbox
-# # self.textbox = QLineEdit(self)
-# # self.textbox.move(20, 20)
-# # self.textbox.resize(280,40)
 
-# # # Create a button in the window
-# # self.button = QPushButton('Show text', self)
-# # self.button.move(20,80)
+# # Create textbox
+# self.textbox = QLineEdit(self)
+# self.textbox.move(20, 20)
+# self.textbox.resize(280,40)
 
-# # # connect button to function on_click
-# # self.button.clicked.connect(self.on_click)
-# # self.show()
+# # Create a button in the window
+# self.button = QPushButton('Show text', self)
+# self.button.move(20,80)
 
+# # connect button to function on_click
+# self.button.clicked.connect(self.on_click)
+# self.show()
 
-drawFixation(log_file=LOG_FILE)
+#window()
+#drawFixation(log_file=LOG_FILE)
 
 
 # drawFixation(LOG_FILE, FRAME_DIR)
