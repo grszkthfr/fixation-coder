@@ -1,4 +1,9 @@
 # ignore files
 
+# ignore actual data
 *.ppm
 *.txt
+
+#vs code directories/files
+*.code-workspace
+*.vscode
