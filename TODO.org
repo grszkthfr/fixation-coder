@@ -1,0 +1,17 @@
+TITLE: TODO
+
+* Grundsätzlich
+
++ Textbox in LOG_File hinterlegen, damit Funktion auf den eingegebenen Wert zugreifen kann
++ Tastenanschalg mitschreiben
+
+** TODO Features
+
++ korrektur von Trials
++ Pfade flexibel wählen
++ Dropdown liste von allen Log-Files im Dir
+
+** Hintergrund
+
++   alles in PyQt Fenster packen
+    +   cv2.imshow() läuft im moment in eigenem Fenster
