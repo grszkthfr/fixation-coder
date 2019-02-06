@@ -4,8 +4,6 @@ import sys
 from os import path
 import csv
 import cv2
-# import math
-# import numpy as np
 
 #APP
 from PyQt5.QtCore import *
@@ -34,22 +32,6 @@ def write_line(OUTPUT_DIR, INPUT):
 
         # write trial
         fileWriter.writerow(INPUT)
-
-
-def draw_fixation():
-    print("Draw Fixation from log of frame into img of frame")
-
-
-def get_frames_img():
-    print("Handled img of frame")
-
-
-def get_frames_log(log_file):
-    print("Handled log of frame")
-
-
-def load_log(log_file):
-    print("Loaded log file")
 
 
 def drawFixation(log_file, frame_directory = "frames"):
@@ -87,9 +69,9 @@ def drawFixation(log_file, frame_directory = "frames"):
 
                 img = cv2.flip(img, 0)  # 0 = horizontal, 1 = vertical, -1 = both
 
-                #cv2.imshow("frame", img)
+                cv2.imshow("frame", img)
 
-                return(img)
+                #return(img)
 
                 next_frame = True
                 while next_frame:
@@ -120,69 +102,35 @@ def drawFixation(log_file, frame_directory = "frames"):
 
                 print(fixation)
                 if next_frame == False: break
-                
 
-# def window():
-#     app = QApplication(sys.argv)
-#     win = QWidget()
-#     button = QPushButton(win)
-#     button.setText("Hello World!")
-#     button.move(50, 50)
-#     button.clicked.connect(showimg)
+def setup():
 
-#     # textbox
-#     textbox = QLineEdit(win)
-#     textbox.setDragEnabled(True)
-#     textbox.setText("subject_")
-#     textbox.setToolTip(
-#         "Please enter subject id. Don't forget trailing 0 for id's < 9")
-#     textbox.move(20, 20)
-#     textbox.resize(280, 40)
+    app = QApplication(sys.argv)
+    win = QWidget()
 
-#     # # dropdown
-#     # menu = QMenu()
-    
-#     # # sub_menu = QMenu("Sub Menu")
-#     # # for i in ["a", "b", "c"]: #or your dict
-#     # #     sub_menu.addAction(i) #it is just a regular QMenu
+    # textbox for log file name
+    textbox = QLineEdit(win)
+    textbox.setDragEnabled(True)
+    textbox.setText("log_2019-01-25_01_1.9_1.txt")
+    textbox.setToolTip(
+        "Please enter exact file name of log file")
+    textbox.move(100, 100)
+    textbox.resize(280, 40)
 
-#     # win.addMenu(sub_menu)
+    # start button
+    button = QPushButton(win)
+    button.setText("Start")
+    button.move(50, 50)
+    button.clicked.connect(start_coding)
 
-#     win.setWindowTitle("Fixation Coder App")
-#     win.show()
-#     sys.exit(app.exec_())
-
-# def showimg():
-#     app = QApplication(sys.argv)
-#     win = QWidget()
-#     #setWindowTitle("Frame")
-#     #setGeometry(self.left, self.top, self.width, self.height)
-      
-#     # Create widget
-#     label = QLabel()
-#     pixmap = QPixmap('log//subject_01//frames//val_1_1//val_1_1_frame_00370.ppm')
-#     label.setPixmap(pixmap)
-#     win.resize(pixmap.width(),pixmap.height())
-      
-#     win.show()
-#     #sys.exit(app.exec_())
+    win.setWindowTitle("Fixation Coder App")
+    win.show()
+    sys.exit(app.exec_())
 
 
-# # Create textbox
-# self.textbox = QLineEdit(self)
-# self.textbox.move(20, 20)
-# self.textbox.resize(280,40)
+def start_coding():
 
-# # Create a button in the window
-# self.button = QPushButton('Show text', self)
-# self.button.move(20,80)
-
-# # connect button to function on_click
-# self.button.clicked.connect(self.on_click)
-# self.show()
-
-#window()
-#drawFixation(log_file=LOG_FILE)
+    drawFixation(LOG_FILE)
 
 
-# drawFixation(LOG_FILE, FRAME_DIR)
+setup()
