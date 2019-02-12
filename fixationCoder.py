@@ -46,20 +46,40 @@ def writeLine(out_file, subject_id, video_id, frame_id, fixation_id):
             writer.writerow(("subject_id", "video_id", "frame_id", "fixation_id", "fix_person", "fix_object", "fix_person_absent", "no_fixation"))
 
         # write trial
-        writer.writerow((int(str.split(subject_id, "_")[1]), video_id, frame_id, fixation_id, fixation_dummy[0], fixation_dummy[1], fixation_dummy[2], fixation_dummy[3]))
+        print("WRITE (regular):\n", [int(str.split(subject_id, "_")[1]), video_id, frame_id, fixation_id, fixation_dummy[0], fixation_dummy[1], fixation_dummy[2], fixation_dummy[3]])
+        writer.writerow([int(str.split(subject_id, "_")[1]), video_id, frame_id, fixation_id, fixation_dummy[0], fixation_dummy[1], fixation_dummy[2], fixation_dummy[3]])
 
-    save_file.close() # to safely delete rows
+    save_file.close() # needed? to safely delete rows
 
-#DELETE complote file
-# def deleteLine(out_file):
+def deleteLine(out_file):
 
-#     with open(out_file, 'w') as save_file:
+    with open(out_file, 'r') as save_file:
         
-#         reader = csv.reader(save_file, delimiter='\t')
-#         new_save_file = list(save_file)[:-1]
-        
-#         writer = csv.writer(new_save_file, delimiter='\t') # tab separated
-#         writer.writerows(new_save_file)
+        reader = csv.reader(save_file, delimiter='\t')
+
+        new_save_file = list(reader)
+        #print("OLD:\n", new_save_file)
+        #print("DELETE:\n", new_save_file[-1]) # deleted
+        new_save_file = new_save_file[:-1] # truncat last entry
+        #print("NEW:\n", new_save_file)
+
+    # write trials, without deleted one
+    with open(out_file, 'w', newline='') as save_file:
+        writer = csv.writer(save_file, delimiter='\t') # tab separated
+
+        #print("WRITE (deleted):\n", [row for row in new_save_file])
+        for row in new_save_file:
+            writer.writerow(row)
+
+
+
+    # with open(out_file, 'w',newline='') as save_file:
+    #     writer = csv.writer(save_file, delimiter='\t') # tab separated
+    #     writer.writerow((lines[0], lines[1], lines[2], lines[3], lines[4], lines[5], lines[6], lines[7]))
+
+        #out_file.close()
+        #writer = csv.writer(new_save_file, delimiter='\t') # tab separated
+        #writer.writerows(new_save_file)
 
 
 def fixationDummyCoding(fixation_id):
@@ -135,7 +155,7 @@ def drawFixation(log_file, frame_directory="frames"):
     #print(log_fixations_name)
 
     frames = readFrames(log_file)
-    print(frames[:5])
+    #print(frames[:5])
 
     counter = 0
     while counter <= len(frames): 
@@ -147,7 +167,7 @@ def drawFixation(log_file, frame_directory="frames"):
         frame_id = frame[3]
 
         frame_screenshot = video_id + "_" + "frame_" + frame_id + ".ppm"
-        print(frame_screenshot)
+        #print(frame_screenshot)
         frame_screenshot = path.join(frame_dir, frame_screenshot)
         frame_screenshot = path.abspath(frame_screenshot)
 
@@ -204,6 +224,7 @@ def drawFixation(log_file, frame_directory="frames"):
 
             elif k == key_next_frame: # space
 
+                #if fixation_id == "unkown"
                 if fixation_id != "deleted":
                     counter +=1
                     writeLine(out_file, subject_id, video_id, frame_id, fixation_id) # write line into file
