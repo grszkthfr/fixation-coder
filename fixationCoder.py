@@ -212,12 +212,12 @@ def drawFixation(log_file, frame_directory="frames"):
                 #counter -= 2 # because space adds 1
                 #break
 
-            # TODO schreibt unkown in Datei! ARG!
-            elif k == key_next_frame and fixation_id != "unkown": # space
+            elif k == key_next_frame and fixation_id != "unknown": # space
 
                 if fixation_id != "deleted":
                     counter += 1
                     writeLine(out_file, subject_id, video_id, frame_id, fixation_id)
+
 
                 elif fixation_id == "deleted":
                     counter -= 1
