@@ -3,6 +3,8 @@
 # ignore actual data
 *.ppm
 *.txt
+*.txt
+*.csv
 
 #vs code directories/files
 *.code-workspace
