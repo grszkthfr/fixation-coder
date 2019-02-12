@@ -19,6 +19,7 @@ import cv2
 
 # log file
 LOG_FILE = "log_2019-01-28_04_1.22.2_2.txt"
+#LOG_FILE = "log_2019-01-25_01_val_1_1.txt"
 
 # keys
 key_fix_person = 49         # key "1" to code a fixation_id on a person 
@@ -30,7 +31,6 @@ key_next_frame = 32         # key "space" to write line, go to next frame
 key_exit = 27
 
 #############################################################################
-
 
 
 def writeLine(out_file, subject_id, video_id, frame_id, fixation_id):
@@ -51,6 +51,7 @@ def writeLine(out_file, subject_id, video_id, frame_id, fixation_id):
 
     save_file.close() # needed? to safely delete rows
 
+
 def deleteLine(out_file):
 
     with open(out_file, 'r') as save_file:
@@ -70,7 +71,6 @@ def deleteLine(out_file):
         #print("WRITE (deleted):\n", [row for row in new_save_file])
         for row in new_save_file:
             writer.writerow(row)
-
 
 
 def fixationDummyCoding(fixation_id):
@@ -106,6 +106,7 @@ def readFrames(LOG_FILE):
 
     return(frames)
 
+
 def onlyScreenshotFrames(ALL_FRAMES):
 
     screenshot_frames = []
@@ -122,6 +123,22 @@ def onlyScreenshotFrames(ALL_FRAMES):
 
 #def handleInput(NEXT_FRAME):
 
+def updateImageInformation(image, frame_id, fixation_id):
+
+
+    font = cv2.FONT_HERSHEY_PLAIN
+    height, width, channels = image.shape
+
+    # information box
+    cv2.rectangle(image,(0, height-50), (int(width/2), height),(0,0,0),-1)
+
+    # frame_id
+    cv2.putText(image, "frame_id: " + frame_id, (0,height-25), font, 1, (255,255,255))
+
+    # fixtiaon_id
+    cv2.putText(image, "current fixation_id: " + fixation_id, (0,height-12), font, 1, (255,255,255))
+
+    cv2.imshow("frame", image)
 
 def drawFixation(log_file, frame_directory="frames"):
 
@@ -155,6 +172,7 @@ def drawFixation(log_file, frame_directory="frames"):
 
         video_id = frame[2]
         frame_id = frame[3]
+        fixation_id = ""
 
         frame_screenshot = video_id + "_" + "frame_" + frame_id + ".ppm"
         print("current frame:\t\t", frame_screenshot)
@@ -169,7 +187,8 @@ def drawFixation(log_file, frame_directory="frames"):
 
 
         img = cv2.flip(img, 0)  # 0 = horizontal, 1 = vertical, -1 = both
-        cv2.putText(img, frame_id, (200,200), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+
+        updateImageInformation(img, frame_id, fixation_id)
 
         cv2.imshow("frame", img)
 
@@ -191,18 +210,30 @@ def drawFixation(log_file, frame_directory="frames"):
 
             elif k == key_fix_person:  # #1
                 fixation_id = "person"
+
+                updateImageInformation(img, frame_id, fixation_id)
                 #break
 
             elif k == key_fix_object:  # #2
                 fixation_id = "object"
+
+                updateImageInformation(img, frame_id, fixation_id)
+
                 #break
 
             elif k == key_fix_person_absent:  # #2
+
                 fixation_id = "person_absent"
+                updateImageInformation(img, frame_id, fixation_id)
+
+
                 #break
 
             elif k == key_no_fixation:  # #2
                 fixation_id = "no_fixation"
+
+                updateImageInformation(img, frame_id, fixation_id)
+
                 #break
 
             elif k == key_delete_frame: # d
@@ -232,6 +263,7 @@ def drawFixation(log_file, frame_directory="frames"):
                 #break
 
         print("coded fixation_id:\t", fixation_id)
+
         fixation_id = "unknown"
 
         if next_frame == False: break
