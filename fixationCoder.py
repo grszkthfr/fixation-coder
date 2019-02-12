@@ -18,7 +18,7 @@ import cv2
 #############################################################################
 
 # log file
-LOG_FILE = "log_2019-01-25_01_val_1_1.txt"
+LOG_FILE = "log_2019-01-28_04_1.22.2_2.csv"
 
 # keys
 key_fix_person = 49         # key "1" to code a fixation_id on a person 
@@ -46,7 +46,7 @@ def writeLine(out_file, subject_id, video_id, frame_id, fixation_id):
             writer.writerow(("subject_id", "video_id", "frame_id", "fixation_id", "fix_person", "fix_object", "fix_person_absent", "no_fixation"))
 
         # write trial
-        print("WRITE (regular):\n", [int(str.split(subject_id, "_")[1]), video_id, frame_id, fixation_id, fixation_dummy[0], fixation_dummy[1], fixation_dummy[2], fixation_dummy[3]])
+        #print("WRITE (regular):\n", [int(str.split(subject_id, "_")[1]), video_id, frame_id, fixation_id, fixation_dummy[0], fixation_dummy[1], fixation_dummy[2], fixation_dummy[3]])
         writer.writerow([int(str.split(subject_id, "_")[1]), video_id, frame_id, fixation_id, fixation_dummy[0], fixation_dummy[1], fixation_dummy[2], fixation_dummy[3]])
 
     save_file.close() # needed? to safely delete rows
@@ -71,15 +71,6 @@ def deleteLine(out_file):
         for row in new_save_file:
             writer.writerow(row)
 
-
-
-    # with open(out_file, 'w',newline='') as save_file:
-    #     writer = csv.writer(save_file, delimiter='\t') # tab separated
-    #     writer.writerow((lines[0], lines[1], lines[2], lines[3], lines[4], lines[5], lines[6], lines[7]))
-
-        #out_file.close()
-        #writer = csv.writer(new_save_file, delimiter='\t') # tab separated
-        #writer.writerows(new_save_file)
 
 
 def fixationDummyCoding(fixation_id):
@@ -151,23 +142,22 @@ def drawFixation(log_file, frame_directory="frames"):
     if not path.isdir(out_dir):
         os.makedirs(out_dir) # throws an error when failing
 
-    out_file = path.join(out_dir, str.split(subject_id, "_")[1] + '-' + video_id + '.csv')
-    #print(log_fixations_name)
+    out_file = path.join(out_dir, str.split(subject_id, "_")[1] + '-' + video_id + '.txt')
+    print(out_file)
 
     frames = readFrames(log_file)
     #print(frames[:5])
 
     counter = 0
-    while counter <= len(frames): 
+    while counter < len(frames): 
 
-        # print(frame[3] + ".ppm\n" + frame[4] + "," + frame[5])
         frame = frames[counter]
 
         video_id = frame[2]
         frame_id = frame[3]
 
         frame_screenshot = video_id + "_" + "frame_" + frame_id + ".ppm"
-        #print(frame_screenshot)
+        print("current frame:\t\t", frame_screenshot)
         frame_screenshot = path.join(frame_dir, frame_screenshot)
         frame_screenshot = path.abspath(frame_screenshot)
 
@@ -222,12 +212,12 @@ def drawFixation(log_file, frame_directory="frames"):
                 #counter -= 2 # because space adds 1
                 #break
 
-            elif k == key_next_frame: # space
+            # TODO schreibt unkown in Datei! ARG!
+            elif k == key_next_frame and fixation_id != "unkown": # space
 
-                #if fixation_id == "unkown"
                 if fixation_id != "deleted":
-                    counter +=1
-                    writeLine(out_file, subject_id, video_id, frame_id, fixation_id) # write line into file
+                    counter += 1
+                    writeLine(out_file, subject_id, video_id, frame_id, fixation_id)
 
                 elif fixation_id == "deleted":
                     counter -= 1
@@ -241,7 +231,7 @@ def drawFixation(log_file, frame_directory="frames"):
                 # print(repr(chr(k % 256))) # https://stackoverflow.com/questions/14494101/using-other-keys-for-the-waitkey-function-of-opencv
                 #break
 
-        print(fixation_id)
+        print("coded fixation_id:\t", fixation_id)
         fixation_id = "unknown"
 
         if next_frame == False: break
