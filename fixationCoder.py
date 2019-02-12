@@ -18,7 +18,7 @@ import cv2
 #############################################################################
 
 # log file
-LOG_FILE = "log_2019-01-28_04_1.22.2_2.csv"
+LOG_FILE = "log_2019-01-28_04_1.22.2_2.txt"
 
 # keys
 key_fix_person = 49         # key "1" to code a fixation_id on a person 
@@ -142,7 +142,7 @@ def drawFixation(log_file, frame_directory="frames"):
     if not path.isdir(out_dir):
         os.makedirs(out_dir) # throws an error when failing
 
-    out_file = path.join(out_dir, str.split(subject_id, "_")[1] + '-' + video_id + '.txt')
+    out_file = path.join(out_dir, str.split(subject_id, "_")[1] + '-' + video_id + '.csv')
     print(out_file)
 
     frames = readFrames(log_file)
