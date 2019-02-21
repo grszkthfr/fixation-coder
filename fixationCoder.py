@@ -9,6 +9,7 @@ import os
 import csv
 import cv2
 import numpy as np
+import itertools
 
 #############################################################################
 ################# Settings  #################################################
@@ -21,13 +22,11 @@ LOG_FILE = 'log_2019-02-01_17_1.41_2.txt'
 KEY_FIX_PERSON = 49         # key "1" to code a fixation_id on a person
 KEY_FIX_OBJECT_MOVING = 50         # key "2" to code a fixation_id on a object
 KEY_FIX_OBJECT_STATIC = 51  # key "3" to code a fixation_id w/o person in scene
+KEY_FIX_BACKGROUND = 52 # key "4"
 
-# key "2" to code a fixation_id on a object
-KEY_FIX_OBJECT_MOVING_NP = 119
-# key "3" to code a fixation_id w/o person in 
-KEY_FIX_OBJECT_STATIC_NP = 101
+KEY_PERSON_IN_SCENE = 112 # key "p"
 
-KEY_NO_FIXATION = 109        # key "0" to code a fixation_id on a person
+KEY_NO_FIXATION = 110        # key "0" to code a fixation_id on a person
 KEY_DELETE_FRAME = 100      # key "d" to delete previuos frame,. go back
 KEY_NEXT_FRAME = 32         # key "space" to write line, go to next frame
 KEY_EXIT = 27
@@ -35,9 +34,9 @@ KEY_EXIT = 27
 #############################################################################
 
 
-def writeLine(out_file, subject_id, video_id, frame_id, fixation_id):
+def writeLine(
+    out_file, subject_id, video_id, frame_id, fixation_id, person_in_scene):
 
-    fixation_dummy = fixationDummyCoding(fixation_id)
 
     with open(out_file, 'a', newline='') as save_file:
         writer = csv.writer(save_file, delimiter='\t')  # tab separated
@@ -87,29 +86,6 @@ def deleteLine(out_file):
             writer.writerow(row)
 
 
-def fixationDummyCoding(fixation_id):
-    # TODO why brackets?
-    if fixation_id == 'person':
-        fixation_dummy = [1, 0, 0, 0]
-
-    elif fixation_id == 'object':
-        fixation_dummy = [0, 1, 0, 0]
-
-    elif fixation_id == 'person_absent':
-        fixation_dummy = [0, 0, 1, 0]
-
-    elif fixation_id == 'no_fixation':
-        fixation_dummy = [0, 0, 0, 1]
-
-    elif fixation_id == 'unkown':
-        fixation_dummy = [0, 0, 0, 0]
-
-    else:
-        fixation_dummy = ['', '', '', '']
-
-    return(fixation_dummy)
-
-
 def readFrames(LOG_FILE):
 
     with open(LOG_FILE, 'r') as f:
@@ -145,7 +121,7 @@ def handleInput(NEXT_FRAME):
     print("TODO")
 
 
-def updateImageInformation(image, frame_id, fixation_id):
+def updateImageInformation(image, frame_id, fixation_id, person_in_scene):
 
     font = cv2.FONT_HERSHEY_PLAIN
     height, width, channels = image.shape
@@ -153,13 +129,19 @@ def updateImageInformation(image, frame_id, fixation_id):
     # frame information box
     cv2.rectangle(
         image,
-        (0, height-50), (int(width/1.5), height),
+        (0, height-60), (int(width/1.5), height),
         (0, 0, 0), -1)
 
     # frame_id
     cv2.putText(
         image,
-        'frame_id: ' + frame_id, (0, height-25),
+        'frame_id: ' + frame_id, (0, height-40),
+        font, 1, (255, 255, 255))
+
+    # person_in_scene
+    cv2.putText(
+        image,
+        'person_in_scene: ' + person_in_scene, (0, height-25),
         font, 1, (255, 255, 255))
 
     # fixtiaon_id
@@ -237,7 +219,8 @@ def drawFixation(log_file_name, frame_directory='frames'):
 
     frames = readFrames(log_file)
     # print(frames[:5])
-    fixation_id = ''
+    fixation_id = 'choose from 1 - 4'
+    person_in_scene = 'toggle with *p*'
 
     counter = 0
     while counter < len(frames):
@@ -260,11 +243,14 @@ def drawFixation(log_file_name, frame_directory='frames'):
 
         img = cv2.flip(img, 0)  # 0 = horizontal, 1 = vertical, -1 = both
 
-        updateImageInformation(img, frame_id, fixation_id)
+        updateImageInformation(img, frame_id, fixation_id, person_in_scene)
 
         cv2.imshow('frame', img)
 
-        # return(img)
+        # return(img) https://stackoverflow.com/questions/8381735/how-to-toggle-a-value-in-python
+        toggle_person_in_scene = itertools.cycle([
+            'persons_in_scene',
+            'no_persons_in_scene']).__next__
 
         next_frame = True
         while next_frame:
@@ -282,41 +268,44 @@ def drawFixation(log_file_name, frame_directory='frames'):
             elif k == -1:  # normally -1 returned, so don't print it
                 continue
 
+            # toggle person_in_scene
+            elif k == KEY_PERSON_IN_SCENE:
+                person_in_scene = toggle_person_in_scene()
+                updateImageInformation(img, frame_id, fixation_id, person_in_scene)
+
+            # fixations with person
             elif k == KEY_FIX_PERSON:  # #1
                 fixation_id = 'person'
-                updateImageInformation(img, frame_id, fixation_id)
+                updateImageInformation(img, frame_id, fixation_id, person_in_scene)
 
             elif k == KEY_FIX_OBJECT_MOVING:  # #2
                 fixation_id = 'object_moving'
-                updateImageInformation(img, frame_id, fixation_id)
+                updateImageInformation(img, frame_id, fixation_id, person_in_scene)
 
             elif k == KEY_FIX_OBJECT_STATIC:  # #3
                 fixation_id = 'object_static'
-                updateImageInformation(img, frame_id, fixation_id)
+                updateImageInformation(img, frame_id, fixation_id, person_in_scene)
 
-            elif k == KEY_FIX_OBJECT_MOVING_NP:  # #2
-                fixation_id = 'object_moving_no-person'
-                updateImageInformation(img, frame_id, fixation_id)
+            elif k == KEY_FIX_BACKGROUND:  # #4
+                fixation_id = 'background'
+                updateImageInformation(img, frame_id, fixation_id, person_in_scene)
 
-            elif k == KEY_FIX_OBJECT_STATIC_NP:  # #3
-                fixation_id = 'object_static_no-person'
-                updateImageInformation(img, frame_id, fixation_id)
-
-
+            # special keys
             elif k == KEY_NO_FIXATION:  # n
                 fixation_id = 'no_fixation'
-                updateImageInformation(img, frame_id, fixation_id)
+                updateImageInformation(img, frame_id, fixation_id, person_in_scene)
 
             elif k == KEY_DELETE_FRAME:  # d
                 fixation_id = 'deleted'
 
             # TODO make a "valid_code = TRUE"
-            elif k == KEY_NEXT_FRAME and fixation_id != 'unknown' and fixation_id != '':  # space
+            elif k == KEY_NEXT_FRAME and fixation_id != 'choose from 1 - 4' and person_in_scene != 'toggle with *p*':  # space
 
                 if fixation_id != 'deleted':
                     counter += 1
                     writeLine(
-                        out_file, subject_id, video_id, frame_id, fixation_id)
+                        out_file, subject_id, video_id, frame_id,
+                        fixation_id, person_in_scene)
 
                 elif fixation_id == 'deleted':
                     counter -= 1
@@ -325,7 +314,8 @@ def drawFixation(log_file_name, frame_directory='frames'):
                 break
 
             else:  # else print key value
-                fixation_id = 'unknown'
+                fixation_id = 'choose from 1 - 4'
+                updateImageInformation(img, frame_id, fixation_id, person_in_scene)
                 print(k)
                 # print(repr(chr(k % 256)))  # https://stackoverflow.com/questions/14494101/using-other-keys-for-the-waitkey-function-of-opencv
                 # break
