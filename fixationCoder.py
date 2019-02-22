@@ -43,8 +43,7 @@ def writeLine(
         if os.stat(out_file).st_size == 0:  # if file is empty, insert header
             writer.writerow((
                 'subject_id', 'video_id', 'frame_id',
-                'fixation_id', 'fix_person', 'fix_object',
-                'fix_person_absent', 'no_fixation'))
+                'fixation_id', 'person_in_scene'))
 
         # write trial
         # print(
@@ -56,8 +55,7 @@ def writeLine(
         # TODO why brackets?
         writer.writerow([
             int(str.split(subject_id, '_')[1]), video_id, frame_id,
-            fixation_id, fixation_dummy[0], fixation_dummy[1],
-            fixation_dummy[2], fixation_dummy[3]])
+            fixation_id, person_in_scene])
 
     # save_file.close() # needed? to safely delete rows
 
@@ -165,42 +163,13 @@ def drawFixation(log_file_name, frame_directory='frames'):
     part_id = 'session_' + str.split(log_file_name, '_')[4][:-4]
     video_id = log_file_name[18:-4]
 
-    # pre stuff for each file in directory start with inclduing log_ date_ subject_id
-    files_id = '_'.join(str.split(log_file_name, '_')[:-2])
-
     path_files = path.join('log', subject_id)
     log_file = path.join(path_files, log_file_name)
     log_file = path.abspath(log_file)
 
-    # # get file names of validation
-
-    # val_before_id = 'val_1_' + str.split(part_id, '_')[1]
-    # print(val_before_id)
-    # val_after_id = 'val_2_' + str.split(part_id, '_')[1]
-
-    # val_before_file_name = '_'.join((files_id, val_before_id)) + ".txt"
-    # val_after_file_name = '_'.join((files_id, val_after_id)) + ".txt"
-
-    # val_files = [
-    #     path.join(path_files, val_before_file_name),
-    #     path.join(path_files, val_after_file_name)]
-
-    # val_files[0] = path.abspath(val_files[0])
-    # val_files[1] = path.abspath(val_files[1])
-    
-    # val_dirs = [
-    #     path.join('log', subject_id, 'frames', val_before_id),
-    #     path.join('log', subject_id, 'frames', val_after_id)]
-
-    # val_dirs[0] = path.abspath(val_dirs[0])
-    # val_dirs[1] = path.abspath(val_dirs[1])
-
-
     # directory of frames
     frame_dir = path.join('log', subject_id, 'frames', video_id)
     frame_dir = path.abspath(frame_dir)
-
-
 
     # output directory
     out_dir = path.join('log_fixations', subject_id)
@@ -213,9 +182,6 @@ def drawFixation(log_file_name, frame_directory='frames'):
     out_file = path.join(
         out_dir, str.split(subject_id, '_')[1] + '_' + video_id + '.csv')
     # print(out_file)
-
-    #correctDrift(val_files, val_dirs, out_dir)
-
 
     frames = readFrames(log_file)
     # print(frames[:5])
@@ -250,7 +216,7 @@ def drawFixation(log_file_name, frame_directory='frames'):
         # return(img) https://stackoverflow.com/questions/8381735/how-to-toggle-a-value-in-python
         toggle_person_in_scene = itertools.cycle([
             'persons_in_scene',
-            'no_persons_in_scene']).__next__
+            'no_persons_in_scene'])#.__next__
 
         next_frame = True
         while next_frame:
@@ -270,7 +236,9 @@ def drawFixation(log_file_name, frame_directory='frames'):
 
             # toggle person_in_scene
             elif k == KEY_PERSON_IN_SCENE:
-                person_in_scene = toggle_person_in_scene()
+
+                # TODO each new frame needs two toggle, when person_in_scene was coded before
+                person_in_scene = next(toggle_person_in_scene)
                 updateImageInformation(img, frame_id, fixation_id, person_in_scene)
 
             # fixations with person
@@ -321,6 +289,7 @@ def drawFixation(log_file_name, frame_directory='frames'):
                 # break
 
         print('coded fixation_id:\t', fixation_id)
+        print('coded person_in_scene:\t', person_in_scene)
 
         # fixation_id = 'unknown'
 
