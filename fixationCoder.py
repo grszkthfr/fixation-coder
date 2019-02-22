@@ -16,7 +16,7 @@ import itertools
 #############################################################################
 
 # log file
-LOG_FILE = 'log_2019-02-01_17_1.41_2.txt'
+LOG_FILE = 'log_2019-01-28_05_1.9_1.txt'
 
 # keys
 KEY_FIX_PERSON = 49         # key "1" to code a fixation_id on a person
@@ -118,12 +118,66 @@ def showScreenshotWithFixation(FRAME):
 def handleInput(NEXT_FRAME):
     print("TODO")
 
+def checkScreenshot(frame_screenshot):
+
+    # check if file is missing
+    if not os.path.isfile(frame_screenshot):
+
+        img = np.zeros((840, 756, 3), np.uint8)
+        
+        # text
+        cv2.putText(
+            img,
+            'MISSING SCREENSHOT!', (75, 378),
+            cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255))
+
+        missing_screenshot = True
+
+        fixation_id = 'NO_SCREENSHOT'
+        person_in_scene = 'NO_SCREENSHOT'
+
+        # write it immeadtly to log file
+        writeLine(
+            out_file, subject_id, video_id, frame_id, fixation_id,
+            person_in_scene)
+        return()
+
+    else:
+
+        missing_screenshot = False
+
+        img = cv2.imread(frame_screenshot)
+        gaze_position = (int(float(frame[4])/2), int(float(frame[5])/2))  # 216
+
+        cv2.circle(img, gaze_position, 3, (0, 255, 255), 2)
+
+        img = cv2.flip(img, 0)  # 0 = horizontal, 1 = vertical, -1 = both
+
+        updateImageInformation(img, frame_id, fixation_id, person_in_scene)
+
+
+def getFrameInformation(frame_row, frame_dir):
+
+    video_id = frame_row[2]
+    frame_id = frame_row[3]
+
+    gaze_pos_x = int(float(frame_row[4])/2)
+    gaze_pos_y = int(float(frame_row[5])/2)
+
+    frame_screenshot = video_id + '_' + 'frame_' + frame_id + '.ppm'
+    print('current frame:\t\t', frame_screenshot)
+    frame_screenshot = path.join(frame_dir, frame_screenshot)
+    frame_screenshot = path.abspath(frame_screenshot)
+
+    return(frame_screenshot, video_id, frame_id, gaze_pos_x, gaze_pos_y)
+
 
 def updateImageInformation(image, frame_id, fixation_id, person_in_scene):
 
     font = cv2.FONT_HERSHEY_PLAIN
     height, width, channels = image.shape
-
+    print("HEIGHT___", height)
+    print("WIDTH___", width)
     # frame information box
     cv2.rectangle(
         image,
@@ -191,25 +245,33 @@ def drawFixation(log_file_name, frame_directory='frames'):
     counter = 0
     while counter < len(frames):
 
-        frame = frames[counter]
+        frame_screenshot, video_id, frame_id, gaze_pos_x, gaze_pos_y = getFrameInformation(frames[counter], frame_dir)
 
-        video_id = frame[2]
-        frame_id = frame[3]
+        # frame = frames[counter]
 
-        frame_screenshot = video_id + '_' + 'frame_' + frame_id + '.ppm'
-        print('current frame:\t\t', frame_screenshot)
-        frame_screenshot = path.join(frame_dir, frame_screenshot)
-        frame_screenshot = path.abspath(frame_screenshot)
+        # video_id = frame[2]
+        # frame_id = frame[3]
+
+        # gaze_pos_x = int(float(frame[4])/2)
+        # gaze_pos_y = int(float(frame[5])/2)
+
+        # frame_screenshot = video_id + '_' + 'frame_' + frame_id + '.ppm'
+        # print('current frame:\t\t', frame_screenshot)
+        # frame_screenshot = path.join(frame_dir, frame_screenshot)
+        # frame_screenshot = path.abspath(frame_screenshot)
+
+        # soon in checkScrennshot()
+        missing_screenshot = False
 
         img = cv2.imread(frame_screenshot)
-
-        gaze_position = (int(float(frame[4])/2), int(float(frame[5])/2))  # 216
+        gaze_position = (gaze_pos_x, gaze_pos_y)  # 216
 
         cv2.circle(img, gaze_position, 3, (0, 255, 255), 2)
 
         img = cv2.flip(img, 0)  # 0 = horizontal, 1 = vertical, -1 = both
 
         updateImageInformation(img, frame_id, fixation_id, person_in_scene)
+        # ---|
 
         cv2.imshow('frame', img)
 
@@ -235,54 +297,58 @@ def drawFixation(log_file_name, frame_directory='frames'):
                 continue
 
             # toggle person_in_scene
-            elif k == KEY_PERSON_IN_SCENE:
+            elif k == KEY_PERSON_IN_SCENE and not missing_screenshot:
 
-                # TODO each new frame needs two toggle, when person_in_scene was coded before
+                # TODO needs two toggle, when previous frame was "person_in_scene"
                 person_in_scene = next(toggle_person_in_scene)
                 updateImageInformation(img, frame_id, fixation_id, person_in_scene)
 
             # fixations with person
-            elif k == KEY_FIX_PERSON:  # #1
+            elif k == KEY_FIX_PERSON and not missing_screenshot:  # #1
                 fixation_id = 'person'
                 updateImageInformation(img, frame_id, fixation_id, person_in_scene)
 
-            elif k == KEY_FIX_OBJECT_MOVING:  # #2
+            elif k == KEY_FIX_OBJECT_MOVING and not missing_screenshot:  # #2
                 fixation_id = 'object_moving'
                 updateImageInformation(img, frame_id, fixation_id, person_in_scene)
 
-            elif k == KEY_FIX_OBJECT_STATIC:  # #3
+            elif k == KEY_FIX_OBJECT_STATIC and not missing_screenshot:  # #3
                 fixation_id = 'object_static'
                 updateImageInformation(img, frame_id, fixation_id, person_in_scene)
 
-            elif k == KEY_FIX_BACKGROUND:  # #4
+            elif k == KEY_FIX_BACKGROUND and not missing_screenshot:  # #4
                 fixation_id = 'background'
                 updateImageInformation(img, frame_id, fixation_id, person_in_scene)
 
             # special keys
-            elif k == KEY_NO_FIXATION:  # n
+            elif k == KEY_NO_FIXATION and not missing_screenshot:  # n
                 fixation_id = 'no_fixation'
                 updateImageInformation(img, frame_id, fixation_id, person_in_scene)
 
             elif k == KEY_DELETE_FRAME:  # d
-                fixation_id = 'deleted'
+                fixation_id = 'delete'
+                updateImageInformation(img, frame_id, fixation_id, person_in_scene)
 
             # TODO make a "valid_code = TRUE"
             elif k == KEY_NEXT_FRAME and fixation_id != 'choose from 1 - 4' and person_in_scene != 'toggle with *p*':  # space
 
-                if fixation_id != 'deleted':
+                if fixation_id != 'delete':
                     counter += 1
                     writeLine(
                         out_file, subject_id, video_id, frame_id,
                         fixation_id, person_in_scene)
 
-                elif fixation_id == 'deleted':
+                elif fixation_id == 'delete':
                     counter -= 1
+                    fixation_id = 'deleted'
                     deleteLine(out_file)
 
                 break
 
             else:  # else print key value
-                fixation_id = 'choose from 1 - 4'
+
+                if not missing_screenshot:
+                    fixation_id = 'choose from 1 - 4'
                 updateImageInformation(img, frame_id, fixation_id, person_in_scene)
                 print(k)
                 # print(repr(chr(k % 256)))  # https://stackoverflow.com/questions/14494101/using-other-keys-for-the-waitkey-function-of-opencv
