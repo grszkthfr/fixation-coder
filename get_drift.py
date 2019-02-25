@@ -29,7 +29,7 @@ def calculate_drift(data_dir):
         # print(files_id)
 
         # output directory
-        out_dir = path.join('log_fixations', subject_id)
+        out_dir = path.join('log_drift', subject_id)
         out_dir = path.abspath(out_dir)
 
         # check if file and folder already exist
