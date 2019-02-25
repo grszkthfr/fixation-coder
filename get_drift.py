@@ -10,6 +10,8 @@ import csv
 import cv2
 import numpy as np
 
+VISUALIZE_DRIFT = True
+
 
 def get_information(data_dir):
 
@@ -110,6 +112,44 @@ def read_frames(log_file):
 
     return subject_id, video_id, frames
 
+def prepare_image(control_x, control_y, gaze_x, gaze_y, res, contours, img):
+
+    diff_x = (control_x - gaze_x)
+    diff_y = (control_y - gaze_y)
+
+    # draw contour
+    cv2.drawContours(
+        image=res, contours=contours, contourIdx=-1,
+        color=(0, 255, 255), thickness=-1)
+
+    cv2.circle(
+        img=img, center=(control_x, control_y),
+        radius=10, color=(0, 0, 255))
+
+    cv2.circle(
+        img=res, center=(control_x, control_y), radius=2,
+        color=(0, 0, 255), thickness=-1)
+
+    text = 'Difference x: ' + str(diff_x) + "; Difference y: " + str(diff_y)
+    cv2.putText(
+        img=img, text=text,
+        org=(75, 378),
+        fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=2,
+        color=(255, 255, 255))
+
+    return img, res
+
+
+def show_image(res, img):
+
+    # show
+    cv2.imshow('frame', img)
+    #cv2.imshow('thresh', thresh)
+
+    #cv2.imshow('mask', mask)
+    cv2.imshow('res', res)
+    k = cv2.waitKey(500)
+
 def correct_drift(validation_files, validation_directories, out_dir):
 
     """
@@ -204,15 +244,13 @@ def correct_drift(validation_files, validation_directories, out_dir):
                     #for c in contours:
                         # compute the center of the contour
                     contour_moment = cv2.moments(array=contours[0])
+
                     if contour_moment['m00'] > 0:
                         #print("M > 0\t\t\t\t", frame_id)
                         control_x = int(
                             contour_moment["m10"] / contour_moment["m00"])
                         control_y = int(
                             contour_moment["m01"] / contour_moment["m00"])
-
-                        diff_x = (control_x - gaze_x)
-                        diff_y = (control_y - gaze_y)
 
                         """
                         # from: https://2.bp.blogspot.com/-mexnuZ06I-k/Vg1bGIwo_zI/AAAAAAAADZU/oIi52uuKY3Q/s1600/day17-1.JPG
@@ -225,25 +263,8 @@ def correct_drift(validation_files, validation_directories, out_dir):
                             [subject_id, video_id, frame_id, gaze_x, gaze_y,
                              control_x, control_y])
 
-                        # draw contour
-                        cv2.drawContours(
-                            image=res, contours=contours, contourIdx=-1,
-                            color=(0, 255, 255), thickness=-1)
-
-                        cv2.circle(
-                            img=img, center=(control_x, control_y),
-                            radius=10, color=(0, 0, 255))
-
-                        cv2.circle(
-                            img=res, center=(control_x, control_y), radius=2,
-                            color=(0, 0, 255), thickness=-1)
-
-                        text = 'Difference x: ' + str(diff_x) + "; Difference y: " + str(diff_y)
-                        cv2.putText(
-                            img=img, text=text,
-                            org=(75, 378),
-                            fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=2,
-                            color=(255, 255, 255))
+                        if VISUALIZE_DRIFT:
+                            prepare_image(control_x, control_y, gaze_x, gaze_y, res, contours, img)
 
 
                     else:
@@ -252,17 +273,8 @@ def correct_drift(validation_files, validation_directories, out_dir):
                             [subject_id, video_id, frame_id, gaze_x, gaze_y,
                              'no_contours', 'no_contours', ''])
 
-
-                    # show
-                    cv2.imshow('frame', img)
-                    #cv2.imshow('thresh', thresh)
-
-                    #cv2.imshow('mask', mask)
-                    cv2.imshow('res', res)
-                    k = cv2.waitKey(500) & 0xFF
-
-                    if k == 27:
-                        break
+                    if VISUALIZE_DRIFT:
+                        show_image(res, img)
 
             with open(out_file, 'w', newline='') as save_file:
                 writer = csv.writer(save_file, delimiter='\t')  # tab separated
