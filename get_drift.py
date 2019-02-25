@@ -10,15 +10,16 @@ import csv
 import cv2
 import numpy as np
 
-VISUALIZE_DRIFT = True
+VISUALIZE_DRIFT = False
 
 
-def get_information(data_dir):
+def calculate_drift(data_dir):
 
     """
-    TODO: get_information(data_dir)-docstring
+    TODO: calculate_drift(data_dir)-docstring
     """
 
+    # for each subject in directory
     for i in os.listdir(data_dir):
         subject_id = i
         file_path = path.join(data_dir, subject_id)
@@ -35,7 +36,7 @@ def get_information(data_dir):
         if not path.isdir(out_dir):
             os.makedirs(out_dir)  # throws an error when failing
 
-
+        # for each validation video
         for part in [1, 2]:
 
 
@@ -48,12 +49,15 @@ def get_information(data_dir):
             val_before_file_name = '_'.join((files_id, val_before_id)) + ".txt"
             val_after_file_name = '_'.join((files_id, val_after_id)) + ".txt"
 
+            # use dictionary like: val_files {path:, file: , name: }
             val_files = [
-                path.join(file_path, val_before_file_name),
-                path.join(file_path, val_after_file_name)]
+                ["val.pre",
+                 path.join(file_path, val_before_file_name)],
+                ["val.post",
+                 path.join(file_path, val_after_file_name)]]
 
-            val_files[0] = path.abspath(val_files[0])
-            val_files[1] = path.abspath(val_files[1])
+            val_files[0][1] = path.abspath(val_files[0][1])
+            val_files[1][1] = path.abspath(val_files[1][1])
 
             val_dirs = [
                 path.join('log', subject_id, 'frames', val_before_id),
@@ -160,15 +164,20 @@ def correct_drift(validation_files, validation_directories, out_dir):
     for file in range(len(validation_files)):
 
         val_log = []
-        subject_id, video_id, frames = read_frames(validation_files[file])
+        subject_id, video_id, frames = read_frames(validation_files[file][1])
         print("working on \t", subject_id, "\t", video_id)
+        
+        validation_id = validation_files[file][0]
+        session_id = video_id[-1]
+        # print(session_id)
 
+        # print(validation_id)
         # print(frames[:5])
 
         frame_dir = validation_directories[file]
 
         out_file = path.join(
-            out_dir, subject_id + '_' + video_id + '.csv')
+            out_dir, subject_id + '_' + validation_id + '_' + session_id + '.csv')
                     # print(out_file)
 
         if not frames:
@@ -286,4 +295,4 @@ def correct_drift(validation_files, validation_directories, out_dir):
                 writer.writerows(val_log)
 
 
-get_information("log")
+calculate_drift("log")
