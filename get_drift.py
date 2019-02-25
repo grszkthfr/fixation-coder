@@ -11,8 +11,11 @@ import cv2
 import numpy as np
 
 
+def get_information(data_dir):
 
-def getInformaiton(data_dir):
+    """
+    TODO: get_information(data_dir)-docstring
+    """
 
     for i in os.listdir(data_dir):
         subject_id = i
@@ -31,7 +34,7 @@ def getInformaiton(data_dir):
             os.makedirs(out_dir)  # throws an error when failing
 
 
-        for part in [1,2]:
+        for part in [1, 2]:
 
 
             # get file names of validation
@@ -57,12 +60,16 @@ def getInformaiton(data_dir):
             val_dirs[0] = path.abspath(val_dirs[0])
             val_dirs[1] = path.abspath(val_dirs[1])
 
-            correctDrift(val_files, val_dirs, out_dir)
+            correct_drift(val_files, val_dirs, out_dir)
 
-def filterScreenshotFrames(ALL_FRAMES):
+def filter_frames(all_frames):
+
+    """
+    TODO: filter_frames-docstring
+    """
 
     screenshot_frames = []
-    for row in ALL_FRAMES[1:]:      # except header
+    for row in all_frames[1:]:      # except header
 
         # only every 10th screenshot taken
         every_10th = (int(row[3]) % 10 == 0 and int(row[3]) >= 230)
@@ -81,39 +88,45 @@ def filterScreenshotFrames(ALL_FRAMES):
             screenshot_frames.append(row)
 
     # print(screenshot_frames)
-    return(screenshot_frames)
+    return screenshot_frames
 
-def readFrames(LOG_FILE):
+def read_frames(log_file):
 
-    with open(LOG_FILE, 'r') as f:
+    """
+    TODO: read_frames-docstring
+    """
 
-        READER = csv.reader(f, delimiter='\t')
-        all_frames = list(READER)
+    with open(log_file, 'r') as file:
+
+        reader = csv.reader(file, delimiter='\t')
+        all_frames = list(reader)
 
         subject_id = all_frames[1][0]
         video_id = all_frames[1][2]
 
 
-        frames = filterScreenshotFrames(all_frames)
+        frames = filter_frames(all_frames)
         # print(frames[:5])
 
-    return(subject_id, video_id, frames)
+    return subject_id, video_id, frames
 
-def correctDrift(validation_files, validation_directories, out_dir):
-    '''
+def correct_drift(validation_files, validation_directories, out_dir):
+
+    """
+    TODO: correct_drift-docstring
     Find Val_X_1 and VA_X_2 and compute drift correction
-    '''
+    """
 
     for file in range(len(validation_files)):
 
         val_log = []
-        subject_id, video_id, frames = readFrames(validation_files[file])
+        subject_id, video_id, frames = read_frames(validation_files[file])
         print("working on \t", subject_id, "\t", video_id)
 
         # print(frames[:5])
 
         frame_dir = validation_directories[file]
-        
+
         out_file = path.join(
             out_dir, subject_id + '_' + video_id + '.csv')
                     # print(out_file)
@@ -122,11 +135,11 @@ def correctDrift(validation_files, validation_directories, out_dir):
 
             with open(out_file, 'w', newline='') as save_file:
                 writer = csv.writer(save_file, delimiter='\t')  # tab separated
-                
+
                 if os.stat(out_file).st_size == 0:  # if file is empty, insert header
-                    writer.writerow([
-                    'subject_id', 'video_id', 'frame_id', 'gaze_x', 'gaze_y',
-                    'control_x', 'control_y', 'distance'])
+                    writer.writerow(
+                        ['subject_id', 'video_id', 'frame_id', 'gaze_x',
+                         'gaze_y', 'control_x', 'control_y', 'distance'])
 
                 writer.writerow([subject_id, video_id, "no_log"])
 
@@ -151,59 +164,93 @@ def correctDrift(validation_files, validation_directories, out_dir):
                 gaze_x = gaze_position[0]
                 gaze_y = gaze_position[1]
 
-                hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-                sensitivity = 100
-                lower_white = np.array([0,0,255-sensitivity])
-                upper_white = np.array([255,sensitivity,255])
+                # https://stackoverflow.com/questions/22588146/tracking-white-color-using-python-opencv
+                hsv = cv2.cvtColor(src=img, code=cv2.COLOR_BGR2HSV)
+                sensitivity = 125
+                lower_white = np.array([0, 0, 255-sensitivity])
+                upper_white = np.array([255, sensitivity, 255])
 
                 # Threshold the HSV image to get only white colors
-                mask = cv2.inRange(hsv, lower_white, upper_white)
+                mask = cv2.inRange(
+                    src=hsv, lowerb=lower_white, upperb=upper_white)
                 # Bitwise-AND mask and original image
-                res = cv2.bitwise_and(img,img, mask = mask)
+                res = cv2.bitwise_and(
+                    src1=img, src2=img, mask=mask)
 
                 # finding contours
                 #ret, thresh = cv2.threshold(mask,127,255,0)
                 contours, hierarchy = cv2.findContours(
-                    mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+                    image=mask, mode=cv2.RETR_TREE, method=cv2.CHAIN_APPROX_SIMPLE)
 
-                # assume perfect fixation:
-                # only filtered frames so each frame has a white spot if it is not covert by fixation and missing contours
+                """
+                assume perfect fixation:
+                only filtered frames so each frame has a white spot if it is
+                not covert by fixation and missing contours
+                """
                 if not contours:
                     print("no contours: ", frame_id, "\t1")
-                    val_log.append([subject_id, video_id, frame_id, gaze_x, gaze_y, 'no_contours', 'no_contours', ''])
+                    val_log.append(
+                        [subject_id, video_id, frame_id, gaze_x, gaze_y,
+                         'no_contours', 'no_contours', ''])
 
                 else:
-                    
+
                     # sorting contours by size
                     contours = sorted(
                         contours,
-                        key = cv2.contourArea,
-                        reverse = True)
+                        key=cv2.contourArea,
+                        reverse=True)
 
                     #for c in contours:
                         # compute the center of the contour
-                    M = cv2.moments(contours[0])
-                    if M['m00'] > 0:
+                    contour_moment = cv2.moments(array=contours[0])
+                    if contour_moment['m00'] > 0:
                         #print("M > 0\t\t\t\t", frame_id)
-                        control_x = int(M["m10"] / M["m00"])
-                        control_y = int(M["m01"] / M["m00"])
-                        # cv2.circle(res, (control_x, control_y), 1, (0,255,0), -1)
+                        control_x = int(
+                            contour_moment["m10"] / contour_moment["m00"])
+                        control_y = int(
+                            contour_moment["m01"] / contour_moment["m00"])
 
+                        diff_x = (control_x - gaze_x)
+                        diff_y = (control_y - gaze_y)
+
+                        """
                         # from: https://2.bp.blogspot.com/-mexnuZ06I-k/Vg1bGIwo_zI/AAAAAAAADZU/oIi52uuKY3Q/s1600/day17-1.JPG
-                        distance = np.sqrt((control_x - gaze_x)**2+(control_y - gaze_y)**2)
+                        """
+                        # distance = np.sqrt(
+                        #     (control_x - gaze_x)**2 + (control_y - gaze_y)**2)
                         #print('current validation frame:\t\t', frame_screenshot, "\n", distance)
 
-                        val_log.append([subject_id, video_id, frame_id, gaze_x, gaze_y, control_x, control_y, distance])
-                        
+                        val_log.append(
+                            [subject_id, video_id, frame_id, gaze_x, gaze_y,
+                             control_x, control_y])
+
                         # draw contour
-                        cv2.drawContours(res, contours, -1, (0,255,0), 3)
+                        cv2.drawContours(
+                            image=res, contours=contours, contourIdx=-1,
+                            color=(0, 255, 255), thickness=-1)
+
+                        cv2.circle(
+                            img=img, center=(control_x, control_y),
+                            radius=10, color=(0, 0, 255))
+
+                        cv2.circle(
+                            img=res, center=(control_x, control_y), radius=2,
+                            color=(0, 0, 255), thickness=-1)
+
+                        text = 'Difference x: ' + str(diff_x) + "; Difference y: " + str(diff_y)
+                        cv2.putText(
+                            img=img, text=text,
+                            org=(75, 378),
+                            fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=2,
+                            color=(255, 255, 255))
 
 
                     else:
                         print("no contours: ", frame_id, "\t2")
                         val_log.append(
-                            [subject_id, video_id, frame_id, gaze_x,gaze_y,
-                            'no_contours', 'no_contours', ''])
+                            [subject_id, video_id, frame_id, gaze_x, gaze_y,
+                             'no_contours', 'no_contours', ''])
 
 
                     # show
@@ -216,16 +263,15 @@ def correctDrift(validation_files, validation_directories, out_dir):
 
                     if k == 27:
                         break
-            
 
             with open(out_file, 'w', newline='') as save_file:
                 writer = csv.writer(save_file, delimiter='\t')  # tab separated
                 if os.stat(out_file).st_size == 0:  # if file is empty, insert header
                     writer.writerow([
-                        'subject_id', 'video_id', 'frame_id', 'gaze_x', 'gaze_y',
-                        'control_x', 'control_y', 'distance'])
+                        'subject_id', 'video_id', 'frame_id', 'gaze_x',
+                        'gaze_y', 'control_x', 'control_y', 'distance'])
 
                 writer.writerows(val_log)
 
 
-getInformaiton("log")
+get_information("log")
