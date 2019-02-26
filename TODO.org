@@ -15,3 +15,6 @@ TITLE: TODO
 
 +   alles in PyQt Fenster packen
     +   cv2.imshow() läuft im moment in eigenem Fenster
+    
+    
+    https://stackoverflow.com/questions/24150952/valueerror-too-many-values-to-unpack-expected-2
