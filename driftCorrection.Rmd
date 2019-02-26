@@ -1,38 +1,98 @@
 ---
-title: "Day 1"
-output:
-  html_document:
-    df_print: paged
+title: "workflow for data processing"
+author: "Jonas Großekathöfer"
+date: "last updated: `r Sys.Date()`"
+output: html_document
 ---
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 
 library(tidyverse)
 library(fs)
+
 ```
 
-# get drift
-
-## read data
-
 ```{r}
+
+print_plots = FALSE
+
+```
+
+# information
+
+## table of variables
+
+### general
+
+| var_name      | description                                           |
+|:-------------:|:-----------------------------------------------------:|
+| subject_id    | identifier for subjects                               |
+| session_id    | identifier for one of the two sessions                |
+| video_id      | identifier for videos, see also video_part            |
+| video_part    | identifier for part, each video exists in two parts which are randomly assinged to session_id |
+| frame_id      | unique identifier/counter of the frames in each video |
+| gaze_x        | x coordinate of measuered gaze                        |
+| gaze_y        | y coordinate of measuerd gaze                         |
+
+### specific
+
+#### validation
+
+| var_name          | description                                           |
+|:-----------------:|:-----------------------------------------------------:|
+| validation_id     | validation before (pre) and after (post) session_id   |
+| validation_time   | sometimes validation_point were used twice            |
+| validation_point  | validation in three locations (green, blue and red)   |
+| contorl_x         | x coordinate of *active* validation_point             |
+| control_y         | y_coordinate of *active* validation_point             |
+| diff_x            | differenze control_x - gaze_x                         |
+| diff_y            | differecne control_y - gaze_y                         |
+| diff_x_m          | mean of diff_x for validation_id/session_id/subject   |
+| diff_y_m          | mean of diff_y for validation_id/session_id/subject   |
+| diff_x_sd         | sd of diff_x for validation_id/session_id/subject     |
+| diff_y_sd         | sd of diff_x for validation_id/session_id/subject     |
+| diff_x_limit      | 2.5 times diff_x_sd to exclude to extreme differences |
+| diff_y_limit      | 2.5 times diff_y_sd to exclude to extreme differences |
+| diff_x_ok         | fixation ok, if diff_x_m < diff_x_limit               |
+| diff_y_ok         | fixation ok, if diff_y_m < diff_y_limit               |
+
+#### videos
+
+| var_name | description |
+|:--------:|:-----------:|
+|video_n| position when video was played (first - tenth)|
+|camAngle.x||
+|camAngle.y||
+|camAngle.z||
+|||
+|||
+|||
+
+
+# Evaluate validation
+
+## merge data
+
+### read data
+
+```{r read validation log}
 
 validation_log <- 
 
     # get paths of all .csv-files in all subdirectories
     dir_ls("log_drift", recursive = TRUE, glob = "*.csv") %>%
-
+    
     # for each file, map as data frame
     map_df(read_tsv, col_types=cols(subject_id = col_character())) %>%
 
-    # define column types
-    mutate_at(vars(subject_id, video_id, validation_point),
-              list(~factor(.))) %>%
-    
     # in zukunft überfüllig
     rename(video_part = session_id) %>% 
 
-    mutate_at(vars(video_part, validation_id, validation_time),
+    # define column types
+    mutate_at(vars(subject_id, video_id, video_part, validation_point),
+              list(~factor(.))) %>%
+
+    mutate_at(vars(validation_id, validation_time),
               list(~ordered(.))) %>%
 
     # remove frames with failed eye tracking
@@ -59,208 +119,11 @@ validation_log <-
 
 ```
 
-## get summary
+```{r read validation prot}
 
-```{r}
+validation_prot <-
 
-# setting sd limit to later exclude fixations
-sd_limit <- 2.5
-
-# get summary statistics
-validation_summary <- validation_log %>% 
-
-    # for each session in validation in subject
-    group_by(subject_id, validation_id, video_part) %>% 
-
-    summarise(
-
-        # get means
-        m_x = mean(diff_x),
-        m_y = mean(diff_y),
-
-        # get sd
-        sd_x = sd(diff_x),
-        sd_y = sd(diff_y),
-
-        # set limit to exclude fixations off by sd_limit*sd
-        limit_x = sd_limit*sd_x,
-        limit_y = sd_limit*sd_y)
-
-```
-
-## integrate summary with log
-
-```{r}
-
-validation_log <-
-
-    validation_log %>%
-
-    left_join(
-        validation_summary,
-        by=c("subject_id", "video_part", "validation_id")) %>%
-
-    # indicate fixations differing more then limit
-    mutate(
-        bl_y_ok = case_when(diff_y < limit_y ~ "ok",
-                            diff_y >= limit_y ~ "not ok"),
-        bl_x_ok = case_when(diff_x < limit_x ~ "ok",
-                            diff_x >= limit_x ~ "not ok"),
-        bl_ok = case_when(
-            (bl_x_ok == "ok" & bl_y_ok == "ok") ~ "ok",
-            (bl_x_ok != bl_y_ok) ~ "not ok",
-            (bl_x_ok == "not ok" & bl_y_ok == "not ok") ~ "not ok"))
-
-```
-
-## get pre-post comparison
-
-```{r}
-
-validation_pre_post <-
-
-    validation_log %>%
-
-    filter(bl_ok == "ok") %>%
-
-    group_by(subject_id, video_part, validation_id) %>% 
-
-    summarise(
-        m_x = mean(diff_x),
-        m_y = mean(diff_y)) %>%
-
-    gather(temp, diff, c("m_x", "m_y")) %>%
-
-    unite(temp1, video_part, temp, sep="_") %>%
-
-    unite(temp2, validation_id, temp1, sep = "_") %>%
-
-    spread(temp2, diff) %>% 
-    mutate(change_1_x = post_1_m_x - pre_1_m_x,
-           change_1_y = post_1_m_y - pre_1_m_y,
-           change_2_x = post_2_m_x - pre_2_m_x,
-           change_2_y = post_2_m_y - pre_2_m_y) %>% 
-    select(subject_id,
-           start_1_x = pre_1_m_x, change_1_x, start_1_y = pre_1_m_y, change_1_y,
-           start_2_x = pre_2_m_x, change_2_x, start_2_y = pre_2_m_y, change_2_y)
-
-```
-
-## plot fixation per
-
-```{r validation plots}
-
-### plots for baseline quality per subject
-validation_quality <- validation_log %>%
-
-    mutate(
-
-        # move points specific to color
-        diff_x= case_when(
-            validation_point=="green" ~ diff_x,
-            validation_point=="blue" ~ diff_x + 25,
-            validation_point=="red" ~ diff_x - 25),
-
-        diff_y = case_when(
-            validation_point=="green" ~ diff_y + 25,
-            validation_point=="blue" ~ diff_y - 25,
-            validation_point=="red" ~ diff_y - 25)) %>%
-    
-    # filter if wanted, but later indicated by 
-    # filter(bl_y_ok == "ok", bl_x_ok == "ok" ) %>% 
-
-    ### for each subject
-    group_by(subject_id) %>%
-
-    ### for each subject, put all data in a list
-    nest() %>%
-
-    ### make a list of plots for each subject
-    mutate(
-        plot = map(
-            data,
-            
-            ### on data use this funciton (per row I think)
-            ~ ggplot(.) +
-
-                geom_hline(yintercept=0, size = .05) +
-                geom_vline(xintercept=0, size = .05) +
-
-                ### add fixation points
-                geom_point(
-                    aes(x=0, y=25),
-                    shape = 21, colour = "green", fill = "white",
-                    size = 3, stroke = 1) +
-                geom_point(
-                    aes(x=25, y=-25),
-                    shape = 21, colour = "blue", fill = "white",
-                    size = 3, stroke = 1) +
-                geom_point(
-                    aes(x=-25, y=-25),
-                    shape = 21, colour = "red", fill = "white",
-                    size = 3, stroke = 1) +
-                
-                geom_point(
-                    aes(diff_x, diff_y, color = validation_point, shape=bl_ok),
-                    size=.5) +
-
-                # geom_rect(
-                #     aes(xmax=diff_sd_x*2.5, xmin=-diff_sd_x*2.5,
-                #         ymax=diff_sd_y*2.5, ymin=-diff_sd_y*2.5,
-                #         color = validation_point),
-                #     alpha=0, size=.05, color="black") +
-
-                # stat_summary(fun.xmin = function(x) sd(x),
-                #              fun.xmax = function(x) sd(x),
-                #              fun.ymin = function(x) sd(x),
-                #              fun.ymax = function(x) sd(x),
-                #              geom = "rect"),
-
-                ### cut off x
-                scale_x_continuous(limits = c(-150,150)) +
-
-                ### no cut off y
-                scale_y_continuous(limits = c(-150,150)) +
-
-                ### scale settings
-                scale_color_manual(
-                    values=c("darkblue", "darkgreen", "darkred")) +
-                scale_shape_manual(
-                    values = c(4,16), drop = FALSE) +
-
-                ### split plots up by session and validation
-                facet_wrap(video_part~validation_id, drop = FALSE)))
-
-# save plots
-walk2(
-
-    # for each subject
-    .x = validation_quality$subject_id,
-
-    # each plot
-    .y = validation_quality$plot,
-
-    # save
-    ~ggsave(
-
-        # name of the file
-        paste0("plots/validation/subject_",
-               validation_quality$subject_id[.x],
-               "_validation.png"),
-
-        .y,
-
-        # size of the plot
-        width = 7,
-        height = 7))
-
-```
-
-# correct for video fixations 
-
-```{r}
-
-validation_prot <-     dir_ls("prot", glob = "*.csv") %>% 
+    dir_ls("prot", glob = "*.csv") %>% 
 
     map_df(read_tsv, col_types=cols()) %>% 
 
@@ -295,6 +158,287 @@ validation_prot <-     dir_ls("prot", glob = "*.csv") %>%
               list(~ordered(.))) %>% 
     select(subject_id, session_id, video_id, video_part, everything())
 
+```
+
+### merge together
+
+```{r merge validation log and prot}
+
+validation_tmp <- 
+    
+    validation_log %>% 
+    
+    left_join(validation_prot, by =c("subject_id", "video_id", "video_part")) %>% 
+    
+    mutate(subject_id = factor(subject_id)) %>% 
+
+    select(subject_id, session_id, video_id, video_part,
+           everything(),
+
+           # at the moment unneeded
+           -video_n, -check, -comments, -location) %>% 
+    
+    arrange(subject_id, session_id, validation_id, frame_id)
+
+```
+
+## get summary statistics
+
+```{r}
+
+# setting sd limit to later exclude fixations
+sd_limit <- 2.5
+
+# get summary statistics
+validation_summary <- 
+
+    validation_tmp %>%
+
+    # filter first three frames
+    filter(
+        # "green" frames     "blue" frames          "red" frames
+        frame_id != "00250", frame_id != "00550", frame_id != "00850",
+        frame_id != "00260", frame_id != "00560", frame_id != "00860",
+        frame_id != "00270", frame_id != "00570", frame_id != "00870",
+        # session_id: 2
+        frame_id != "01250", frame_id != "01550", frame_id != "01850",
+        frame_id != "01260", frame_id != "01560", frame_id != "01860",
+        frame_id != "01270", frame_id != "01570", frame_id != "01870") %>%
+
+    # for each session in validation in subject
+    group_by(subject_id, validation_id, session_id) %>% 
+
+    summarise(
+
+        # get means
+        diff_x_m = mean(diff_x),
+        diff_y_m = mean(diff_y),
+
+        # get sd
+        diff_x_sd = sd(diff_x),
+        diff_y_sd = sd(diff_y),
+
+        # set limit to exclude fixations off by sd_limit*sd
+        diff_x_limit = sd_limit*diff_x_sd,
+        diff_y_limit = sd_limit*diff_y_sd)
+
+```
+
+## merge summary with df_validation
+
+```{r}
+
+df_validation <-
+
+    validation_tmp %>%
+
+    left_join(
+        validation_summary,
+        by=c("subject_id", "session_id", "validation_id")) %>%
+
+    mutate(
+
+        diff_y_ok = case_when(
+            diff_y < diff_y_limit ~ "ok",
+            diff_y >= diff_y_limit ~ "not ok"),
+
+        diff_x_ok = case_when(
+            diff_x < diff_x_limit ~ "ok",
+            diff_x >= diff_x_limit ~ "not ok"),
+
+        diff_ok = case_when(
+            (diff_x_ok == "ok" & diff_y_ok == "ok") ~ "ok",
+            (diff_x_ok != diff_y_ok) ~ "not ok",
+            (diff_x_ok == "not ok" & diff_y_ok == "not ok") ~ "not ok"))
+
+```
+
+## safe
+
+```{r}
+
+df_pre_post <-
+
+    df_validation %>%
+
+    filter(diff_ok == "ok") %>%
+
+    group_by(subject_id, session_id, validation_id) %>% 
+
+    summarise(
+        diff_x_m = mean(diff_x),
+        diff_y_m = mean(diff_y)) %>%
+
+    gather(temp, diff, c("diff_x_m", "diff_y_m")) %>%
+
+    unite(temp1, validation_id, temp, sep = "_") %>%
+
+    spread(temp1, diff) %>% 
+    mutate(gaze_x_change = post_diff_x_m - pre_diff_x_m,
+           gaze_y_change = post_diff_y_m - pre_diff_y_m) %>%
+    
+    # if NA than don't correct
+    mutate_at(vars(pre_diff_x_m:gaze_y_change),
+              list(~ifelse(is.na(.), 0, .))) %>% 
+
+    select(subject_id, session_id,
+           gaze_x_start = pre_diff_x_m, gaze_x_change, gaze_y_start = pre_diff_y_m, gaze_y_change) %>% 
+    ungroup()
+
+```
+
+```{r inspection}
+
+# suggests to exclude first three frames of each validation.
+validation_inspection <- df_validation %>% #filter(diff_ok == "not ok") %>% 
+    group_by(diff_ok) %>% 
+    summarise(n=n())
+
+```
+
+
+## plot fixation per
+
+```{r validation plots, eval=print_plots}
+
+### plots for baseline quality per subject
+validation_quality <- df_validation %>%
+
+    mutate(
+
+        # move points specific to color
+        diff_x= case_when(
+            validation_point=="green" ~ diff_x,
+            validation_point=="blue" ~ diff_x + 25,
+            validation_point=="red" ~ diff_x - 25),
+
+        diff_y = case_when(
+            validation_point=="green" ~ diff_y + 25,
+            validation_point=="blue" ~ diff_y - 25,
+            validation_point=="red" ~ diff_y - 25)) %>%
+    
+    # filter if wanted, but later indicated by 
+    # filter(diff_y_ok == "ok", diff_x_ok == "ok" ) %>% 
+
+    ### for each subject
+    group_by(subject_id) %>%
+
+    ### for each subject, put all data in a list
+    nest() %>%
+
+    ### make a list of plots for each subject
+    mutate(
+        plot = map(
+            data,
+            
+            ### on data use this funciton (per row I think)
+            ~ ggplot(.) +
+
+                geom_hline(yintercept=0, size = .05) +
+                geom_vline(xintercept=0, size = .05) +
+
+                ### add fixation points
+                geom_point(
+                    aes(x=0, y=25),
+                    shape = 21, colour = "green", fill = "white",
+                    size = 3, stroke = 1) +
+                geom_point(
+                    aes(x=25, y=-25),
+                    shape = 21, colour = "blue", fill = "white",
+                    size = 3, stroke = 1) +
+                geom_point(
+                    aes(x=-25, y=-25),
+                    shape = 21, colour = "red", fill = "white",
+                    size = 3, stroke = 1) +
+                
+                geom_point(
+                    aes(diff_x, diff_y, color = validation_point, shape=diff_ok),
+                    size=.5) +
+
+                # geom_rect(
+                #     aes(xmax=diff_diff_x_sd*2.5, xmin=-diff_diff_x_sd*2.5,
+                #         ymax=diff_diff_y_sd*2.5, ymin=-diff_diff_y_sd*2.5,
+                #         color = validation_point),
+                #     alpha=0, size=.05, color="black") +
+
+                # stat_summary(fun.xmin = function(x) sd(x),
+                #              fun.xmax = function(x) sd(x),
+                #              fun.ymin = function(x) sd(x),
+                #              fun.ymax = function(x) sd(x),
+                #              geom = "rect"),
+
+                ### cut off x
+                scale_x_continuous(limits = c(-150, 150)) +
+
+                ### no cut off y
+                scale_y_continuous(limits = c(-150, 150)) +
+
+                ### scale settings
+                scale_color_manual(
+                    values=c("darkblue", "darkgreen", "darkred")) +
+                scale_shape_manual(
+                    values = c(4,16), drop = FALSE) +
+
+                ### split plots up by session and validation
+                facet_wrap(session_id~validation_id, drop = FALSE)))
+
+# save plots
+walk2(
+
+    # for each subject
+    .x = validation_quality$subject_id,
+
+    # each plot
+    .y = validation_quality$plot,
+
+    # save
+    ~ggsave(
+
+        # name of the file
+        paste0("plots/validation/subject_",
+               validation_quality$subject_id[.x],
+               "_validation.png"),
+
+        .y,
+
+        # size of the plot
+        width = 7,
+        height = 7))
+
+```
+
+# correct for video fixations 
+
+```{r read video log}
+
+video_log <- 
+
+    # get paths of all .csv-files in all subdirectories
+    dir_ls("log", recursive = TRUE, glob = "*.txt") %>%
+
+    # for each file, map as data frame
+    map_df(read_tsv, col_types=cols(subject_id = col_character())) %>%
+    
+    filter(!str_detect(video_id, "val")) %>% 
+    
+    rename(gaze_x = screenPos.x,
+           gaze_y = screenPos.y,
+           frame_id = frame_video) %>%
+
+    # works only without val_ files, because inconstistent sep with "_"!
+    separate(video_id, c("video_id", "video_part"), sep = "_") %>% 
+
+    # define column types
+    mutate_at(vars(video_id, subject_id, video_part),
+              list(~factor(.))) %>% 
+    select(subject_id, date, video_id, video_part, frame_id, everything())
+
+    # cleaning
+
+
+```
+
+```{r read video prot}
 
 video_prot <- 
 
@@ -310,7 +454,7 @@ video_prot <-
     filter(!str_detect(video_id, "val")) %>%
 
     mutate(
-        
+
         subject_id = ifelse(
             str_count(subject_id) < 2,
             str_c("0", subject_id),
@@ -335,60 +479,65 @@ video_prot <-
 
 ```
 
-
-```{r}
-
-video_log <- 
-
-    # get paths of all .csv-files in all subdirectories
-    dir_ls("log", recursive = TRUE, glob = "*.txt") %>%
-
-    # for each file, map as data frame
-    map_df(read_tsv, col_types=cols(subject_id = col_character())) %>%
-    
-    filter(!str_detect(video_id, "val")) %>% 
-    
-    rename(gaze_x = screenPos.x,
-           gaze_y = screenPos.y,
-           frame_id = frame_video) %>%
-    separate(video_id, c("video_id", "video_part"), sep = "_") %>% 
-
-    # define column types
-    mutate_at(vars(video_id, subject_id, video_part),
-              list(~factor(.))) %>% 
-    select(subject_id, date, video_id, video_part, frame_id, everything())
-
-    # cleaning
-
-
-```
-
 ## integrate protocol into log
 
-```{r}
+### into video
 
-video_log <- 
+```{r merge video log and prot}
+
+df_video <- 
 
     video_log %>% 
 
-    left_join(video_prot, by =c("subject_id", "video_id", "video_part")) %>% 
-    mutate(subject_id = factor(subject_id))
+    left_join(video_prot, by = c("subject_id", "video_id", "video_part")) %>% 
+
+    left_join(df_pre_post, by = c("subject_id", "session_id")) %>%
+
+    mutate(subject_id = factor(subject_id)) %>% 
+
+    # only frames with screeshots
+    filter(
+        as.integer(frame_id) %% 10 == 0,
+        as.integer(frame_id) >= 230) %>%
+    
+    arrange(subject_id, session_id, video_n) %>% 
+
+    group_by(subject_id, session_id) %>% 
+
+
+    mutate(frame_n = 1:n()) %>% 
+
+    select(subject_id, session_id, video_n, video_id, frame_n, frame_id, everything()) %>% 
+
+    mutate(
+        gaze_x_add = frame_n * ((gaze_x_change)/max(frame_n)),
+        gaze_x_drift = gaze_x + gaze_x_start + gaze_x_add,
+        gaze_y_add = frame_n * ((gaze_y_change)/max(frame_n)),
+        gaze_y_drift = gaze_y + gaze_y_start + gaze_y_add)
+
+#to check
+df_video %>%
+    select(subject_id, session_id, frame_n,
+           gaze_x, gaze_x_start, gaze_x_change, gaze_x_drift, gaze_x_add) %>%
+    filter(subject_id == "18", session_id == 2)
+
 
 ```
 
 
-```{r}
+
+```{r, eval=FALSE}
 
 # Create separate files for each species
 iris %>%
   split(.$Species) %>%
   map(select, -Species) %>%
-  iwalk(~ write_tsv(.x, paste0(.y, ".tsv")))
+  iwalk(~ write_tsv(.x, paste0(.y, ".txt")))
 
 ```
 
 
-```{r animations}
+```{r animations, eval=FALSE}
 
 library(gganimate)
 
