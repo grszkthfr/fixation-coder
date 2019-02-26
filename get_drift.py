@@ -76,6 +76,7 @@ def filter_frames(all_frames):
 
         # only every 10th screenshot taken
         every_10th = (int(row[3]) % 10 == 0 and int(row[3]) >= 230)
+
         # frames when validation points are highlighted for fixation
         only_white = (
             (250 <= int(row[3]) <= 490) or    # green 1
@@ -167,8 +168,8 @@ def correct_drift(validation_files, validation_directories, out_dir):
         print("working on \t", subject_id, "\t", video_id)
 
         validation_id = validation_files[file][0]
-        part_id = video_id[-1]
-        # print(part_id)
+        video_part = video_id[-1]
+        # print(video_part)
 
         # print(validation_id)
         # print(frames[:5])
@@ -177,7 +178,7 @@ def correct_drift(validation_files, validation_directories, out_dir):
 
         out_file = path.join(
             out_dir,
-            subject_id + '_val.' + validation_id + '_' + part_id + '.csv')
+            subject_id + '_val.' + validation_id + '_' + video_part + '.txt')
         # print(out_file)
 
         if not frames:
@@ -187,13 +188,13 @@ def correct_drift(validation_files, validation_directories, out_dir):
 
                 if os.stat(out_file).st_size == 0:  # if empty, insert header
                     writer.writerow(
-                        ['subject_id', 'video_id', 'part_id',
+                        ['subject_id', 'video_id', 'video_part',
                          'validation_id', 'validation_time', 'validation_point',
                          'frame_id', 'gaze_x', 'gaze_y', 'control_x',
                          'control_y'])
 
                 writer.writerow(
-                    [subject_id, video_id, part_id,
+                    [subject_id, video_id, video_part,
                      validation_id, '', '',
                      '', '', '', '', ''])
 
@@ -277,7 +278,7 @@ def correct_drift(validation_files, validation_directories, out_dir):
                 if not contours:
                     # print("no contours: ", frame_id, "\t1")
                     val_log.append(
-                        [subject_id, video_id, part_id,
+                        [subject_id, video_id, video_part,
                          validation_id, validation_time, validation_point,
                          frame_id, gaze_x, gaze_y, '', ''])
 
@@ -301,7 +302,7 @@ def correct_drift(validation_files, validation_directories, out_dir):
                             contour_moment["m01"] / contour_moment["m00"])
 
                         val_log.append(
-                            [subject_id, video_id, part_id,
+                            [subject_id, video_id, video_part,
                              validation_id, validation_time, validation_point,
                              frame_id, gaze_x, gaze_y, control_x, control_y])
 
@@ -312,7 +313,7 @@ def correct_drift(validation_files, validation_directories, out_dir):
                     else:
                         # print("no contours: ", frame_id, "\t2")
                         val_log.append(
-                            [subject_id, video_id, part_id,
+                            [subject_id, video_id, video_part,
                              validation_id, validation_time, validation_point,
                              frame_id, gaze_x, gaze_y, '', ''])
 
@@ -323,7 +324,7 @@ def correct_drift(validation_files, validation_directories, out_dir):
                 writer = csv.writer(save_file, delimiter='\t')  # tab separated
                 if os.stat(out_file).st_size == 0:  # if empty, insert header
                     writer.writerow([
-                        'subject_id', 'video_id', 'part_id',
+                        'subject_id', 'video_id', 'video_part',
                         'validation_id', 'validation_time', 'validation_point',
                         'frame_id', 'gaze_x', 'gaze_y', 'control_x',
                         'control_y'])
