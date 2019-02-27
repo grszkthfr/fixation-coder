@@ -9,15 +9,21 @@ import os
 import csv
 import cv2
 import numpy as np
+import pandas as pd
 
-VISUALIZE_DRIFT = False
+# set to true, if you want to see the accuracy, 500ms per frame
+VISUALIZE_DRIFT = True
 
+# set to true, if you want to safe the results to "log_validation/"
+EXPORT_RESULTS = False
 
 def calculate_drift(data_dir):
 
     """
     TODO: calculate_drift(data_dir)-docstring
     """
+
+    validation_log = []
 
     # for each subject in directory
     for i in os.listdir(data_dir):
@@ -29,12 +35,13 @@ def calculate_drift(data_dir):
         # print(files_id)
 
         # output directory
-        out_dir = path.join('log_drift', subject_id)
+        out_dir = path.join('log_validation', subject_id)
         out_dir = path.abspath(out_dir)
 
-        # check if file and folder already exist
-        if not path.isdir(out_dir):
-            os.makedirs(out_dir)  # throws an error when failing
+        if EXPORT_RESULTS:
+            # check if file and folder already exist
+            if not path.isdir(out_dir):
+                os.makedirs(out_dir)  # throws an error when failing
 
         # for each validation video
         for part in [1, 2]:
@@ -47,22 +54,15 @@ def calculate_drift(data_dir):
 
             # use dictionary like: val_files {path:, file: , name: }
             val_files = [
-                ["pre",
-                 path.join(file_path, val_before_file_name)],
-                ["post",
-                 path.join(file_path, val_after_file_name)]]
+                path.join(file_path, val_before_file_name),
+                path.join(file_path, val_after_file_name)]
 
-            val_files[0][1] = path.abspath(val_files[0][1])
-            val_files[1][1] = path.abspath(val_files[1][1])
+            val_files[0] = path.abspath(val_files[0])
+            val_files[1] = path.abspath(val_files[1])
 
-            val_dirs = [
-                path.join('log', subject_id, 'frames', val_before_id),
-                path.join('log', subject_id, 'frames', val_after_id)]
+            correct_drift(val_files, out_dir, validation_log)
 
-            val_dirs[0] = path.abspath(val_dirs[0])
-            val_dirs[1] = path.abspath(val_dirs[1])
-
-            correct_drift(val_files, val_dirs, out_dir)
+    return validation_log
 
 
 def filter_frames(all_frames):
@@ -109,29 +109,45 @@ def read_frames(log_file):
         subject_id = all_frames[1][0]
         video_id = all_frames[1][2]
 
+        video_part = video_id[-1]
+        video_id = video_id[0:-2]
+
         frames = filter_frames(all_frames)
         # print(frames[:5])
 
-    return subject_id, video_id, frames
+    return subject_id, video_id, video_part, frames
 
 
 def prepare_image(control_x, control_y, gaze_x, gaze_y, res, contours, img):
 
+    """
+    TODO: read_frames-docstring
+    """
+
     diff_x = (control_x - gaze_x)
     diff_y = (control_y - gaze_y)
 
-    # draw contour
+    # res not shown atm
     cv2.drawContours(
         image=res, contours=contours, contourIdx=-1,
         color=(0, 255, 255), thickness=-1)
 
     cv2.circle(
+        img=res, center=(control_x, control_y), radius=2,
+        color=(255, 255, 0), thickness=-1)
+
+    # show fixation (turquoise) and roi (white)
+    cv2.circle(
         img=img, center=(control_x, control_y),
-        radius=10, color=(0, 0, 255))
+        radius=10, color=(255, 255, 255), thickness=2)
 
     cv2.circle(
-        img=res, center=(control_x, control_y), radius=2,
-        color=(0, 0, 255), thickness=-1)
+        img=img, center=(gaze_x, gaze_y),
+        radius=10, color=(255, 255, 0), thickness=2)
+
+    cv2.circle(
+        img=img, center=(gaze_x, gaze_y),
+        radius=2, color=(255, 255, 0), thickness=-1)
 
     text = 'Difference x: ' + str(diff_x) + "; Difference y: " + str(diff_y)
     cv2.putText(
@@ -145,16 +161,21 @@ def prepare_image(control_x, control_y, gaze_x, gaze_y, res, contours, img):
 
 def show_image(res, img):
 
+    """
+    TODO: read_frames-docstring
+    """
+
     # show
     cv2.imshow('frame', img)
+
     # cv2.imshow('thresh', thresh)
-
     # cv2.imshow('mask', mask)
-    cv2.imshow('res', res)
-    cv2.waitKey(500)
+    # cv2.imshow('res', res)
+
+    cv2.waitKey(100)
 
 
-def correct_drift(validation_files, validation_directories, out_dir):
+def correct_drift(validation_files, out_dir, validation_log):
 
     """
     TODO: correct_drift-docstring
@@ -163,42 +184,52 @@ def correct_drift(validation_files, validation_directories, out_dir):
 
     for file in range(len(validation_files)):
 
-        val_log = []
-        subject_id, video_id, frames = read_frames(validation_files[file][1])
-        print("working on \t", subject_id, "\t", video_id)
+        frames = []
+        frame_log = []
+        subject_id, video_id, video_part, frames = read_frames(validation_files[file])
 
-        validation_id = validation_files[file][0]
-        video_part = video_id[-1]
-        # print(video_part)
+        if video_id[-1] == "1":
+            validation_id = "pre"
+        else:
+            validation_id = "post"
+        #print(validation_files[file][0])
+        #print(video_part)
 
         # print(validation_id)
         # print(frames[:5])
 
-        frame_dir = validation_directories[file]
 
+        frame_dir = path.join('log', "subject_" + subject_id, 'frames', video_id + "_" + video_part)
         out_file = path.join(
             out_dir,
-            subject_id + '_val.' + validation_id + '_' + video_part + '.txt')
+            subject_id + "_" + video_id + "_" + video_part + '.txt')
         # print(out_file)
 
         if not frames:
 
-            with open(out_file, 'w', newline='') as save_file:
-                writer = csv.writer(save_file, delimiter='\t')  # tab separated
+            print("missing\t\t", subject_id, "\t",
+                video_id, "\t", video_part, "\t", validation_id)
+            if EXPORT_RESULTS:
+                with open(out_file, 'w', newline='') as save_file:
 
-                if os.stat(out_file).st_size == 0:  # if empty, insert header
+                    writer = csv.writer(save_file, delimiter='\t')  # tab
+
+                    if os.stat(out_file).st_size == 0:  # if empty, insert header
+                        writer.writerow(
+                            ['subject_id', 'video_id', 'video_part',
+                            'validation_id', 'validation_time', 'validation_point',
+                            'frame_id', 'gaze_x', 'gaze_y', 'control_x',
+                            'control_y'])
+
                     writer.writerow(
-                        ['subject_id', 'video_id', 'video_part',
-                         'validation_id', 'validation_time', 'validation_point',
-                         'frame_id', 'gaze_x', 'gaze_y', 'control_x',
-                         'control_y'])
-
-                writer.writerow(
-                    [subject_id, video_id, video_part,
-                     validation_id, '', '',
-                     '', '', '', '', ''])
+                        [subject_id, video_id, video_part,
+                        validation_id, '', '',
+                        '', '', '', '', ''])
 
         else:
+
+            print("working on\t", subject_id, "\t",
+                video_id, "\t", video_part, "\t", validation_id)
 
             for i in range(len(frames)):
                 frame = frames[i]
@@ -207,28 +238,30 @@ def correct_drift(validation_files, validation_directories, out_dir):
                 # print("THIS IS VALIDATION FRAME ID:", frame_id)
 
                 # log which point should be fixated
-                if (250 <= int(frame_id) <= 490):
+                if 250 <= int(frame_id) <= 490:
                     validation_point = 'green'
                     validation_time = '1'
-                elif (550 <= int(frame_id) <= 790):
+                elif 550 <= int(frame_id) <= 790:
                     validation_point = 'blue'
                     validation_time = '1'
-                elif (850 <= int(frame_id) <= 1090):
+                elif 850 <= int(frame_id) <= 1090:
                     validation_point = 'red'
                     validation_time = '1'
-                elif (1250 <= int(frame_id) <= 1490):
+                elif 1250 <= int(frame_id) <= 1490:
                     validation_point = 'green'
                     validation_time = '2'
-                elif (1550 <= int(frame_id) <= 1790):
+                elif 1550 <= int(frame_id) <= 1790:
                     validation_point = 'blue'
                     validation_time = '2'
-                elif (1850 <= int(frame_id) <= 2090):
+                elif 1850 <= int(frame_id) <= 2090:
                     validation_point = 'red'
                     validation_time = '2'
 
-                frame_screenshot = video_id + '_' + 'frame_' + frame_id + '.ppm'
+                frame_screenshot = video_id + '_' + video_part + "_" + 'frame_' + frame_id + '.ppm'
                 # print('current validation frame:\t\t', frame_screenshot)
                 frame_screenshot = path.join(frame_dir, frame_screenshot)
+                # print(frame_screenshot)
+
                 frame_screenshot = path.abspath(frame_screenshot)
                 # print('current validation frame:\t\t', frame_screenshot)
 
@@ -254,10 +287,10 @@ def correct_drift(validation_files, validation_directories, out_dir):
                     src1=img, src2=img, mask=mask)
 
                 # finding contours
-                ret, thresh = cv2.threshold(mask, 127, 255, 0)
- 
+                # ret, thresh = cv2.threshold(mask, 127, 255, 0)
+
                 # check opencv-python version to also run on older versions
-                if (int(cv2.__version__[0]) >= 4):
+                if int(cv2.__version__[0]) >= 4:
                     contours, hierarchy = cv2.findContours(
                         image=mask,
                         mode=cv2.RETR_TREE,
@@ -277,7 +310,11 @@ def correct_drift(validation_files, validation_directories, out_dir):
                 """
                 if not contours:
                     # print("no contours: ", frame_id, "\t1")
-                    val_log.append(
+                    frame_log.append(
+                        [subject_id, video_id, video_part,
+                         validation_id, validation_time, validation_point,
+                         frame_id, gaze_x, gaze_y, '', ''])
+                    validation_log.append(
                         [subject_id, video_id, video_part,
                          validation_id, validation_time, validation_point,
                          frame_id, gaze_x, gaze_y, '', ''])
@@ -295,13 +332,18 @@ def correct_drift(validation_files, validation_directories, out_dir):
                     contour_moment = cv2.moments(array=contours[0])
 
                     if contour_moment['m00'] > 0:
+
                         # print("M > 0\t\t\t\t", frame_id)
                         control_x = int(
                             contour_moment["m10"] / contour_moment["m00"])
                         control_y = int(
                             contour_moment["m01"] / contour_moment["m00"])
 
-                        val_log.append(
+                        frame_log.append(
+                            [subject_id, video_id, video_part,
+                             validation_id, validation_time, validation_point,
+                             frame_id, gaze_x, gaze_y, control_x, control_y])
+                        validation_log.append(
                             [subject_id, video_id, video_part,
                              validation_id, validation_time, validation_point,
                              frame_id, gaze_x, gaze_y, control_x, control_y])
@@ -312,24 +354,39 @@ def correct_drift(validation_files, validation_directories, out_dir):
 
                     else:
                         # print("no contours: ", frame_id, "\t2")
-                        val_log.append(
+                        frame_log.append(
                             [subject_id, video_id, video_part,
                              validation_id, validation_time, validation_point,
                              frame_id, gaze_x, gaze_y, '', ''])
+                        validation_log.append(
+                            [subject_id, video_id, video_part,
+                             validation_id, validation_time, validation_point,
+                             frame_id, gaze_x, gaze_y, control_x, control_y])
 
                     if VISUALIZE_DRIFT:
                         show_image(res, img)
 
-            with open(out_file, 'w', newline='') as save_file:
-                writer = csv.writer(save_file, delimiter='\t')  # tab separated
-                if os.stat(out_file).st_size == 0:  # if empty, insert header
-                    writer.writerow([
-                        'subject_id', 'video_id', 'video_part',
-                        'validation_id', 'validation_time', 'validation_point',
-                        'frame_id', 'gaze_x', 'gaze_y', 'control_x',
-                        'control_y'])
+            if EXPORT_RESULTS:
+                with open(out_file, 'w', newline='') as save_file:
+                    writer = csv.writer(save_file, delimiter='\t')
+                    if os.stat(out_file).st_size == 0:
+                        writer.writerow([
+                            'subject_id', 'video_id', 'video_part',
+                            'validation_id', 'validation_time', 'validation_point',
+                            'frame_id', 'gaze_x', 'gaze_y', 'control_x',
+                            'control_y'])
 
-                writer.writerows(val_log)
+                    writer.writerows(frame_log)
 
+validation_log = calculate_drift("log")
+header = ['subject_id', 'video_id', 'video_part',
+                         'validation_id', 'validation_time', 'validation_point',
+                         'frame_id', 'gaze_x', 'gaze_y', 'control_x',
+                         'control_y']
 
-calculate_drift("log")
+# for reticulate if done with in rstudio
+validation_log = pd.DataFrame(validation_log, columns=header)
+print("done")
+
+if VISUALIZE_DRIFT:
+    cv2.destroyAllWindows()

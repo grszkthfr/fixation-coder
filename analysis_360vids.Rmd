@@ -5,19 +5,6 @@ date: "last updated: `r Sys.Date()`"
 output: html_document
 ---
 
-```{r, message=FALSE, warning=FALSE}
-
-library(tidyverse)
-library(fs)
-
-```
-
-```{r}
-
-print_plots = FALSE
-
-```
-
 # information
 
 ## table of variables
@@ -43,7 +30,7 @@ print_plots = FALSE
 | validation_id     | validation before (pre) and after (post) session_id   |
 | validation_time   | sometimes validation_point were used twice            |
 | validation_point  | validation in three locations (green, blue and red)   |
-| contorl_x         | x coordinate of *active* validation_point             |
+| control_x         | x coordinate of *active* validation_point             |
 | control_y         | y_coordinate of *active* validation_point             |
 | diff_x            | differenze control_x - gaze_x                         |
 | diff_y            | differecne control_y - gaze_y                         |
@@ -68,25 +55,84 @@ print_plots = FALSE
 |||
 |||
 
+# prerequisits
 
-# Evaluate validation
+## libraries
+```{r, message=FALSE, warning=FALSE}
 
-## merge data
+library(tidyverse)
+library(fs)
+library(reticulate)
+
+```
+
+## constants to stuff
+
+```{r}
+
+print_plots = TRUE
+
+# set to TRUE if run for the first time
+run_python = FALSE
+
+```
+
+# get drift from screenshots
+
+using reticulate
+
+```{r, eval=run_python}
+
+if (run_python) {
+
+    use_virtualenv("360vids")
+
+    py_run_file("get_drift.py")
+
+    # only read from files when results were exported
+    read_files <- ifelse(!py$EXPORT_RESULTS, FALSE, TRUE)
+
+} else {
+    read_files = TRUE
+}
+
+
+```
+
+# validation
+
+## import data
 
 ### read data
 
 ```{r read validation log}
 
-validation_log <- 
+if (read_files) {
+
+    print("reading .txt-files in...")
+
+    validation_log <- 
 
     # get paths of all .csv-files in all subdirectories
-    dir_ls("log_drift", recursive = TRUE, glob = "*.csv") %>%
+    dir_ls("log_validation", recursive = TRUE, glob = "*.txt") %>%
     
     # for each file, map as data frame
-    map_df(read_tsv, col_types=cols(subject_id = col_character())) %>%
+    map_df(read_tsv, col_types=cols(subject_id = col_character())) # 
 
-    # in zukunft überfüllig
-    rename(video_part = session_id) %>% 
+} else {
+
+    print("doing reticulate magic...")
+    validation_log <- py$validation_log
+
+}
+
+```
+
+```{r tidy validation log}
+
+validation_log <-
+
+    validation_log %>%
 
     # define column types
     mutate_at(vars(subject_id, video_id, video_part, validation_point),
@@ -99,10 +145,6 @@ validation_log <-
     filter(gaze_x > 0, gaze_y > 0) %>%
 
     mutate(
-        # frame_id = as.integer(frame_id),
-
-        # extract video_id (remove video_part)
-        video_id = str_sub(video_id, 1,-3),
 
         # sort validation id: pre before post
         validation_id = ordered(validation_id, levels =c("pre", "post")), 
@@ -160,9 +202,9 @@ validation_prot <-
 
 ```
 
-### merge together
+### merge log prot
 
-```{r merge validation log and prot}
+```{r merge validation prot & log}
 
 validation_tmp <- 
     
@@ -184,7 +226,7 @@ validation_tmp <-
 
 ## get summary statistics
 
-```{r}
+```{r validation summary}
 
 # setting sd limit to later exclude fixations
 sd_limit <- 2.5
@@ -220,13 +262,14 @@ validation_summary <-
 
         # set limit to exclude fixations off by sd_limit*sd
         diff_x_limit = sd_limit*diff_x_sd,
-        diff_y_limit = sd_limit*diff_y_sd)
+        diff_y_limit = sd_limit*diff_y_sd) %>% 
+    arrange(subject_id, session_id, validation_id)
 
 ```
 
-## merge summary with df_validation
+## summary
 
-```{r}
+```{r merge validation data & summary}
 
 df_validation <-
 
@@ -253,7 +296,7 @@ df_validation <-
 
 ```
 
-## safe
+## results
 
 ```{r}
 
@@ -288,21 +331,21 @@ df_pre_post <-
 ```
 
 ```{r inspection}
-
-# suggests to exclude first three frames of each validation.
-validation_inspection <- df_validation %>% #filter(diff_ok == "not ok") %>% 
-    group_by(diff_ok) %>% 
-    summarise(n=n())
+# 
+# # suggests to exclude first three frames of each validation.
+# validation_inspection <- df_validation %>% #filter(diff_ok == "not ok") %>% 
+#     group_by(diff_ok) %>% 
+#     summarise(n=n())
 
 ```
 
 
-## plot fixation per
+## plot validation fixations
 
 ```{r validation plots, eval=print_plots}
 
 ### plots for baseline quality per subject
-validation_quality <- df_validation %>%
+validation_plot <- df_validation %>%
 
     mutate(
 
@@ -382,32 +425,38 @@ validation_quality <- df_validation %>%
                 ### split plots up by session and validation
                 facet_wrap(session_id~validation_id, drop = FALSE)))
 
-# save plots
-walk2(
+if (print_plots == TRUE) {
 
-    # for each subject
-    .x = validation_quality$subject_id,
+    # save plots
+    walk2(
+    
+        # for each subject
+        .x = validation_plot$subject_id,
+    
+        # each plot
+        .y = validation_plot$plot,
+    
+        # save
+        ~ggsave(
+    
+            # name of the file
+            paste0("plots/validation/subject_",
+                   validation_plot$subject_id[.x],
+                   "_validation.png"),
+    
+            .y,
+    
+            # size of the plot
+            width = 7,
+            height = 7))
 
-    # each plot
-    .y = validation_quality$plot,
-
-    # save
-    ~ggsave(
-
-        # name of the file
-        paste0("plots/validation/subject_",
-               validation_quality$subject_id[.x],
-               "_validation.png"),
-
-        .y,
-
-        # size of the plot
-        width = 7,
-        height = 7))
+}
 
 ```
 
-# correct for video fixations 
+# correct for video fixations
+
+## decided not to
 
 ```{r read video log}
 
@@ -423,7 +472,10 @@ video_log <-
     
     rename(gaze_x = screenPos.x,
            gaze_y = screenPos.y,
-           frame_id = frame_video) %>%
+           frame_id = frame_video,
+           head_x = camAngle.x,
+           head_y = camAngle.y,
+           head_z = camAngle.z) %>%
 
     # works only without val_ files, because inconstistent sep with "_"!
     separate(video_id, c("video_id", "video_part"), sep = "_") %>% 
@@ -521,17 +573,19 @@ df_video %>%
            gaze_x, gaze_x_start, gaze_x_change, gaze_x_drift, gaze_x_add) %>%
     filter(subject_id == "18", session_id == 2)
 
-
 ```
-
 
 
 ```{r, eval=FALSE}
 
+df_video %>% 
+    group_by(subject_id, video_id, session_id) %>% 
+    iwalk
+
 # Create separate files for each species
-iris %>%
-  split(.$Species) %>%
-  map(select, -Species) %>%
+df_video %>%
+  split(.$subjects_id) #%>%
+  map(select, -Species) #%>%
   iwalk(~ write_tsv(.x, paste0(.y, ".txt")))
 
 ```
@@ -542,7 +596,7 @@ iris %>%
 library(gganimate)
 
 ani <-
-    validation_quality$plot[[1]] +
+    validation_plot$plot[[1]] +
     labs(title = 'Frame: {frame_time}') +
     transition_time(frame_id) +
     ease_aes('linear')
