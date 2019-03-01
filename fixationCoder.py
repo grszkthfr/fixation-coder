@@ -1,8 +1,10 @@
 #!/usr/bin/python
 # by Jonas Großekathöfer, 2019
 """
-Module doctring
-TODO: PyLint improvements
+Just good enough script to code fixations for each subject for each recorded
+frame.
+To code any subject or video, please specifiy the according log below in the
+settings section and have fun coding. :-)
 """
 from os import path
 import os
@@ -16,7 +18,7 @@ import itertools
 #############################################################################
 
 # log file
-LOG_FILE = 'log_2019-01-28_05_1.9_1.txt'
+LOG_FILE = 'PUT_LOG_FILENAME_HERE.txt'
 
 # keys
 KEY_FIX_PERSON = 49         # key "1" to code a fixation_id on a person
@@ -33,9 +35,38 @@ KEY_EXIT = 27
 
 #############################################################################
 
+def here(file_name=".here"):
+
+    """
+    from: https://stackoverflow.com/questions/37427683/python-search-for-a-file-in-current-directory-and-all-its-parents
+    adapted to work with here-package in R
+    """
+
+    current_dir = os.getcwd()  # search starts here
+    # print(current_directory)
+
+    while True:
+        file_list = os.listdir(current_dir)
+        parent_dir = os.path.dirname(current_dir)
+        if file_name in file_list:
+            # print("File Exists in: ", current_dir)
+            break
+
+        else:
+            if current_dir == parent_dir:  # if dir is root dir
+                # print("File not found")
+                break
+            else:
+                current_dir = parent_dir
+
+    return current_dir
 
 def writeLine(
     out_file, subject_id, video_id, frame_id, fixation_id, person_in_scene):
+
+    """
+    Funciton doctring
+    """
 
 
     with open(out_file, 'a', newline='') as save_file:
@@ -61,9 +92,11 @@ def writeLine(
 
 
 def deleteLine(out_file):
+
     """
     Funciton doctring
     """
+
     with open(out_file, 'r') as save_file:
 
         reader = csv.reader(save_file, delimiter='\t')
@@ -86,6 +119,10 @@ def deleteLine(out_file):
 
 def readFrames(LOG_FILE):
 
+    """
+    Funciton doctring
+    """
+
     with open(LOG_FILE, 'r') as f:
 
         READER = csv.reader(f, delimiter='\t')
@@ -93,20 +130,25 @@ def readFrames(LOG_FILE):
         frames = onlyScreenshotFrames(all_frames)
         # print(frames[:5])
 
-    return(frames)
+    return frames
 
 
 def onlyScreenshotFrames(ALL_FRAMES):
 
+    """
+    Funciton doctring
+    """
+
     screenshot_frames = []
     for row in ALL_FRAMES[1:]:      # except header
-        if (int(row[3]) % 10 == 0 and int(row[3]) >= 230):
+        # video recording starts with frame 230 (250 frames black in the beginning) and video ends at frame 1040, black
+        if int(row[3]) % 10 == 0 and 230 <= int(row[3]) <= 1040:
 
             # print(row)
             screenshot_frames.append(row)
 
     # print(screenshot_frames)
-    return(screenshot_frames)
+    return screenshot_frames
 
 
 # TODO saving screenshots
@@ -116,15 +158,24 @@ def showScreenshotWithFixation(FRAME):
 
 # TODO handle keys
 def handleInput(NEXT_FRAME):
+
+    """
+    Funciton doctring
+    """
+
     print("TODO")
 
 def checkScreenshot(frame_screenshot):
+
+    """
+    Funciton doctring
+    """
 
     # check if file is missing
     if not os.path.isfile(frame_screenshot):
 
         img = np.zeros((840, 756, 3), np.uint8)
-        
+
         # text
         cv2.putText(
             img,
@@ -138,10 +189,14 @@ def checkScreenshot(frame_screenshot):
         missing_screenshot = False
         img = cv2.imread(frame_screenshot)
 
-    return(img, missing_screenshot)
+    return img, missing_screenshot
 
 
 def getFrameInformation(frame_row, frame_dir):
+
+    """
+    Funciton doctring
+    """
 
     video_id = frame_row[2]
     frame_id = frame_row[3]
@@ -154,10 +209,14 @@ def getFrameInformation(frame_row, frame_dir):
     frame_screenshot = path.join(frame_dir, frame_screenshot)
     frame_screenshot = path.abspath(frame_screenshot)
 
-    return(frame_screenshot, video_id, frame_id, gaze_pos_x, gaze_pos_y)
+    return frame_screenshot, video_id, frame_id, gaze_pos_x, gaze_pos_y
 
 
 def updateImageInformation(image, frame_id, fixation_id, person_in_scene):
+
+    """
+    Funciton doctring
+    """
 
     font = cv2.FONT_HERSHEY_PLAIN
     height, width, channels = image.shape
@@ -186,39 +245,44 @@ def updateImageInformation(image, frame_id, fixation_id, person_in_scene):
         'current fixation_id: ' + fixation_id, (0, height-12),
         font, 1, (255, 255, 255))
 
-    # TODO to make rectangle transparent: https://www.pyimagesearch.com/2016/03/07/transparent-overlays-with-opencv/
-    # apply the overlay
-    # cv2.addWeighted(overlay, alpha, output, 1 - alpha, 0, output)
-
     # update window
     cv2.imshow('frame', image)
 
 
 def drawFixation(log_file_name, frame_directory='frames'):
 
+    """
+    Funciton doctring
+    """
+
+    home_dir = here()
+    path_files = path.join(home_dir, "02-experiment", "log")
     # extract relevant information from log filename
     subject_id = 'subject_' + str.split(log_file_name, '_')[2]
     part_id = 'session_' + str.split(log_file_name, '_')[4][:-4]
     video_id = log_file_name[18:-4]
 
-    path_files = path.join('log', subject_id)
+    path_files = path.join(path_files, subject_id)
+    print("path_files:\t", path_files)
+
     log_file = path.join(path_files, log_file_name)
-    log_file = path.abspath(log_file)
+    print("log_file:\t", log_file)
 
     # directory of frames
-    frame_dir = path.join('log', subject_id, 'frames', video_id)
+    frame_dir = path.join(path_files, 'frames', video_id)
     frame_dir = path.abspath(frame_dir)
 
     # output directory
-    out_dir = path.join('log_fixations', subject_id)
-    out_dir = path.abspath(out_dir)
+    out_dir = path.join(
+        home_dir, "03-postprocessing",
+        "fixations", "log_fixations", subject_id)
 
     # check if file and folder already exist
     if not path.isdir(out_dir):
         os.makedirs(out_dir)  # throws an error when failing
 
     out_file = path.join(
-        out_dir, str.split(subject_id, '_')[1] + '_' + video_id + '.csv')
+        out_dir, str.split(subject_id, '_')[1] + '_' + video_id + '.txt')
     # print(out_file)
 
     frames = readFrames(log_file)
@@ -329,7 +393,7 @@ def drawFixation(log_file_name, frame_directory='frames'):
                 if not missing:
                     fixation_id = 'choose from 1 - 4'
                 updateImageInformation(img, frame_id, fixation_id, person_in_scene)
-                print(k)
+                # print(k)
                 # print(repr(chr(k % 256)))  # https://stackoverflow.com/questions/14494101/using-other-keys-for-the-waitkey-function-of-opencv
                 # break
 

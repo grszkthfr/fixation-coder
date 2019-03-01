@@ -5,7 +5,10 @@
 *.txt
 *.txt
 *.csv
+plots/*
 
 #vs code directories/files
 *.code-workspace
 *.vscode
+.Rproj.user
+.Rhistory
