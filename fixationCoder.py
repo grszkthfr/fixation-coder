@@ -43,7 +43,7 @@ def here(file_name=".here"):
     """
 
     current_dir = os.getcwd()  # search starts here
-    # print(current_directory)
+    # print(current_dir)
 
     while True:
         file_list = os.listdir(current_dir)
@@ -83,7 +83,7 @@ def writeLine(
         #     fixation_id, fixation_dummy[0], fixation_dummy[1],
         #     fixation_dummy[2], fixation_dummy[3]])
 
-        # TODO why brackets?
+        # ? why brackets?
         writer.writerow([
             int(str.split(subject_id, '_')[1]), video_id, frame_id,
             fixation_id, person_in_scene])
@@ -151,8 +151,8 @@ def onlyScreenshotFrames(ALL_FRAMES):
     return screenshot_frames
 
 
-# TODO saving screenshots
-def showScreenshotWithFixation(FRAME):
+# TODO feature saving screenshots?
+def saveScreenshotWithFixation(FRAME):
     print("TODO")
 
 
@@ -255,8 +255,8 @@ def drawFixation(log_file_name, frame_directory='frames'):
     Funciton doctring
     """
 
-    home_dir = here()
-    path_files = path.join(home_dir, "02-experiment", "log")
+    working_dir = here()
+    path_files = path.join(working_dir, "02-experiment", "log")
     # extract relevant information from log filename
     subject_id = 'subject_' + str.split(log_file_name, '_')[2]
     part_id = 'session_' + str.split(log_file_name, '_')[4][:-4]
@@ -274,7 +274,7 @@ def drawFixation(log_file_name, frame_directory='frames'):
 
     # output directory
     out_dir = path.join(
-        home_dir, "03-postprocessing",
+        working_dir, "03-postprocessing",
         "fixations", "log_fixations", subject_id)
 
     # check if file and folder already exist
@@ -372,7 +372,7 @@ def drawFixation(log_file_name, frame_directory='frames'):
                 fixation_id = 'delete'
                 updateImageInformation(img, frame_id, fixation_id, person_in_scene)
 
-            # TODO make a "valid_code = TRUE"
+            # TODO make a "valid_key = TRUE"
             elif k == KEY_NEXT_FRAME and fixation_id != 'choose from 1 - 4' and person_in_scene != 'toggle with *p*':  # space
 
                 if fixation_id != 'delete':
