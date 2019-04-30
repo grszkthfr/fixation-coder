@@ -24,7 +24,7 @@ LOG_FILE = 'PUT_LOG_FILENAME_HERE.txt'
 KEY_FIX_PERSON = 49         # key "1" to code a fixation_id on a person
 KEY_FIX_OBJECT_MOVING = 50         # key "2" to code a fixation_id on a object
 KEY_FIX_OBJECT_STATIC = 51  # key "3" to code a fixation_id w/o person in scene
-KEY_FIX_BACKGROUND = 52 # key "4"
+KEY_FIX_BACKGROUND = 52     # key "4"
 
 KEY_PERSON_IN_SCENE = 112 # key "p"
 
