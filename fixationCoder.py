@@ -18,7 +18,7 @@ import itertools
 #############################################################################
 
 # log file
-LOG_FILE = 'PUT_LOG_FILENAME_HERE.txt'
+LOG_FILE = 'log_2019-01-30_99_2.8_2.txt'
 
 # keys
 KEY_FIX_PERSON = 49         # key "1" to code a fixation_id on a person
@@ -315,9 +315,7 @@ def drawFixation(log_file_name, frame_directory='frames'):
             counter += 1
 
         # return(img) https://stackoverflow.com/questions/8381735/how-to-toggle-a-value-in-python
-        toggle_person_in_scene = itertools.cycle([
-            'persons_in_scene',
-            'no_persons_in_scene'])#.__next__
+        toggle_person_in_scene = True
 
         next_frame = True
         while next_frame and not missing:
@@ -343,7 +341,13 @@ def drawFixation(log_file_name, frame_directory='frames'):
             elif k == KEY_PERSON_IN_SCENE and not missing:
 
                 # TODO needs two toggle, when previous frame was "person_in_scene"
-                person_in_scene = next(toggle_person_in_scene)
+                toggle_person_in_scene = not toggle_person_in_scene
+
+                if not toggle_person_in_scene:
+                    person_in_scene = 'no_person_in_scene'
+                if toggle_person_in_scene:
+                    person_in_scene = 'person_in_scene'
+
                 updateImageInformation(img, frame_id, fixation_id, person_in_scene)
 
             # fixations with person
