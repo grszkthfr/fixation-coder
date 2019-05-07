@@ -211,6 +211,20 @@ def getFrameInformation(frame_row, frame_dir):
 
     return frame_screenshot, video_id, frame_id, gaze_pos_x, gaze_pos_y
 
+# ! work in progress!
+def checkInputKey(key1, key2):
+
+    """
+    Funciton doctring
+    """
+    
+    if not key2 != 'choose from 1 - 4' or key2 != 'deleted' and key1 != 'toggle with *p*':
+        valid_key = True
+    else:
+        valid_key = False
+
+    return valid_key 
+
 
 def updateImageInformation(image, frame_id, fixation_id, person_in_scene):
 
@@ -340,7 +354,6 @@ def drawFixation(log_file_name, frame_directory='frames'):
             # toggle person_in_scene
             elif k == KEY_PERSON_IN_SCENE and not missing:
 
-                # TODO needs two toggle, when previous frame was "person_in_scene"
                 toggle_person_in_scene = not toggle_person_in_scene
 
                 if not toggle_person_in_scene:
@@ -376,8 +389,8 @@ def drawFixation(log_file_name, frame_directory='frames'):
                 fixation_id = 'delete'
                 updateImageInformation(img, frame_id, fixation_id, person_in_scene)
 
-            # TODO make a "valid_key = TRUE"
-            elif k == KEY_NEXT_FRAME and fixation_id != 'choose from 1 - 4' and person_in_scene != 'toggle with *p*':  # space
+            # ! WIP make a "valid_key = TRUE"
+            elif k == KEY_NEXT_FRAME and checkInputKey(person_in_scene, fixation_id):  # space
 
                 if fixation_id != 'delete':
                     counter += 1
