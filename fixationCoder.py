@@ -310,7 +310,7 @@ def drawFixation(log_file_name, frame_directory='frames'):
     fixation_id = 'choose from 1 - 4'
     person_in_scene = 'toggle with *p*'
 
-    # return(img) https://stackoverflow.com/questions/8381735/how-to-toggle-a-value-in-python
+    # initialize toggle
     toggle_person_in_scene = True
 
     counter = 0
