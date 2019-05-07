@@ -68,7 +68,6 @@ def writeLine(
     Funciton doctring
     """
 
-
     with open(out_file, 'a', newline='') as save_file:
         writer = csv.writer(save_file, delimiter='\t')  # tab separated
         if os.stat(out_file).st_size == 0:  # if file is empty, insert header
@@ -217,13 +216,13 @@ def checkInputKey(key1, key2):
     """
     Funciton doctring
     """
-    
+
     if not key2 != 'choose from 1 - 4' or key2 != 'deleted' and key1 != 'toggle with *p*':
         valid_key = True
     else:
         valid_key = False
 
-    return valid_key 
+    return valid_key
 
 
 def updateImageInformation(image, frame_id, fixation_id, person_in_scene):
@@ -263,10 +262,17 @@ def updateImageInformation(image, frame_id, fixation_id, person_in_scene):
     cv2.imshow('frame', image)
 
 
+def togglePersonInScene():
+
+    """
+    Function docstring
+    """
+
+
 def drawFixation(log_file_name, frame_directory='frames'):
 
     """
-    Funciton doctring
+    Funciton docstring
     """
 
     working_dir = here()
@@ -304,6 +310,9 @@ def drawFixation(log_file_name, frame_directory='frames'):
     fixation_id = 'choose from 1 - 4'
     person_in_scene = 'toggle with *p*'
 
+    # return(img) https://stackoverflow.com/questions/8381735/how-to-toggle-a-value-in-python
+    toggle_person_in_scene = True
+
     counter = 0
     while counter < len(frames):
 
@@ -327,9 +336,6 @@ def drawFixation(log_file_name, frame_directory='frames'):
                 out_file, subject_id, video_id, frame_id, 'NO_SCREENSHOT',
                 'NO_SCREENSHOT')
             counter += 1
-
-        # return(img) https://stackoverflow.com/questions/8381735/how-to-toggle-a-value-in-python
-        toggle_person_in_scene = True
 
         next_frame = True
         while next_frame and not missing:
@@ -358,36 +364,43 @@ def drawFixation(log_file_name, frame_directory='frames'):
 
                 if not toggle_person_in_scene:
                     person_in_scene = 'no_person_in_scene'
-                if toggle_person_in_scene:
+                else:
                     person_in_scene = 'person_in_scene'
 
-                updateImageInformation(img, frame_id, fixation_id, person_in_scene)
+                updateImageInformation(img, frame_id, fixation_id,
+                                       person_in_scene)
 
             # fixations with person
             elif k == KEY_FIX_PERSON and not missing:  # #1
                 fixation_id = 'person'
-                updateImageInformation(img, frame_id, fixation_id, person_in_scene)
+                updateImageInformation(img, frame_id, fixation_id,
+                                       person_in_scene)
 
             elif k == KEY_FIX_OBJECT_MOVING and not missing:  # #2
                 fixation_id = 'object_moving'
-                updateImageInformation(img, frame_id, fixation_id, person_in_scene)
+                updateImageInformation(img, frame_id, fixation_id,
+                                       person_in_scene)
 
             elif k == KEY_FIX_OBJECT_STATIC and not missing:  # #3
                 fixation_id = 'object_static'
-                updateImageInformation(img, frame_id, fixation_id, person_in_scene)
+                updateImageInformation(img, frame_id, fixation_id,
+                                       person_in_scene)
 
             elif k == KEY_FIX_BACKGROUND and not missing:  # #4
                 fixation_id = 'background'
-                updateImageInformation(img, frame_id, fixation_id, person_in_scene)
+                updateImageInformation(img, frame_id, fixation_id,
+                                       person_in_scene)
 
             # special keys
             elif k == KEY_NO_FIXATION and not missing:  # n
                 fixation_id = 'no_fixation'
-                updateImageInformation(img, frame_id, fixation_id, person_in_scene)
+                updateImageInformation(img, frame_id, fixation_id,
+                                       person_in_scene)
 
             elif k == KEY_DELETE_FRAME:  # d
                 fixation_id = 'delete'
-                updateImageInformation(img, frame_id, fixation_id, person_in_scene)
+                updateImageInformation(img, frame_id, fixation_id,
+                                       person_in_scene)
 
             # ! WIP make a "valid_key = TRUE"
             elif k == KEY_NEXT_FRAME and checkInputKey(person_in_scene, fixation_id):  # space
@@ -409,7 +422,8 @@ def drawFixation(log_file_name, frame_directory='frames'):
 
                 if not missing:
                     fixation_id = 'choose from 1 - 4'
-                updateImageInformation(img, frame_id, fixation_id, person_in_scene)
+                updateImageInformation(img, frame_id, fixation_id,
+                                       person_in_scene)
                 # print(k)
                 # print(repr(chr(k % 256)))  # https://stackoverflow.com/questions/14494101/using-other-keys-for-the-waitkey-function-of-opencv
                 # break
