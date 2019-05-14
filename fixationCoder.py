@@ -35,7 +35,7 @@ KEY_EXIT = 27
 
 #############################################################################
 
-def here(file_name=".here"):
+def here(file_name='.here'):
 
     """
     from: https://stackoverflow.com/questions/37427683/python-search-for-a-file-in-current-directory-and-all-its-parents
@@ -49,12 +49,12 @@ def here(file_name=".here"):
         file_list = os.listdir(current_dir)
         parent_dir = os.path.dirname(current_dir)
         if file_name in file_list:
-            # print("File Exists in: ", current_dir)
+            # print('File Exists in: ', current_dir)
             break
 
         else:
             if current_dir == parent_dir:  # if dir is root dir
-                # print("File not found")
+                # print('File not found')
                 break
             else:
                 current_dir = parent_dir
@@ -152,7 +152,12 @@ def onlyScreenshotFrames(ALL_FRAMES):
 
 # TODO feature saving screenshots?
 def saveScreenshotWithFixation(FRAME):
-    print("TODO")
+    
+    """
+    Funciton doctring
+    """
+    
+    print('TODO')
 
 
 # TODO handle keys
@@ -162,12 +167,13 @@ def handleInput(NEXT_FRAME):
     Funciton doctring
     """
 
-    print("TODO")
+    print('TODO')
 
 def checkScreenshot(frame_screenshot):
 
     """
-    Funciton doctring
+    Check whether screenshot for the given path of the specific frame exists and return black image with warning when missing.
+    Only relevant for frames from the vr.
     """
 
     # check if file is missing
@@ -191,26 +197,31 @@ def checkScreenshot(frame_screenshot):
     return img, missing_screenshot
 
 
-def getFrameInformation(frame_row, frame_dir):
+def getFrameInformation(frame_row, video_id, frame_dir):
 
     """
-    Funciton doctring
+    Extracts frame information (gaze position, video and frame id) from the log_vr-file and returns file path to according screenshot and all the ids.
+    Only relevant for frames from the vr.
     """
 
-    video_id = frame_row[2]
-    frame_id = frame_row[3]
+    # check if video_id from file name is the same in log_vr-file
+    if not video_id == frame_row[2]:
+        # TODO
+        print("error video ids not the same!")
 
-    gaze_pos_x = int(float(frame_row[4])/2)
-    gaze_pos_y = int(float(frame_row[5])/2)
+    else:
+        frame_id = frame_row[3]
+        gaze_pos_x = int(float(frame_row[4])/2)
+        gaze_pos_y = int(float(frame_row[5])/2)
 
-    frame_screenshot = video_id + '_' + 'frame_' + frame_id + '.ppm'
-    print('current frame:\t\t', frame_screenshot)
-    frame_screenshot = path.join(frame_dir, frame_screenshot)
-    frame_screenshot = path.abspath(frame_screenshot)
+        frame_screenshot = video_id + '_' + 'frame_' + frame_id + '.ppm'
+        print('current frame:\t\t', frame_screenshot)
+        frame_screenshot = path.join(frame_dir, frame_screenshot)
+        frame_screenshot = path.abspath(frame_screenshot)
 
-    return frame_screenshot, video_id, frame_id, gaze_pos_x, gaze_pos_y
+        return frame_screenshot, frame_id, gaze_pos_x, gaze_pos_y
 
-# ! work in progress!
+# TODO
 def checkInputKey(key1, key2):
 
     """
@@ -262,31 +273,56 @@ def updateImageInformation(image, frame_id, fixation_id, person_in_scene):
     cv2.imshow('frame', image)
 
 
+# TODO
 def togglePersonInScene():
 
     """
     Function docstring
     """
 
+# ? not sure
+def prepareVR():
 
+    """
+    prepares VR frames
+    """
+
+# ? not sure
+def prepareRL():
+
+    """
+    prepares RL frames, basically extracts for all given files (videos) frames in a directory and returns list of all (every 10th or so) file names.
+    """
+
+# TODO
+def prepareFrames():
+
+    """
+    Prepares images for rating: Picks information and according frame and draws gaze point into frame for rating.
+    Returns img ready for rating (similiar to RL frames).
+    """
+
+
+# TODO split function!
 def drawFixation(log_file_name, frame_directory='frames'):
 
     """
-    Funciton docstring
+    This function does way to much!
     """
 
     working_dir = here()
-    path_files = path.join(working_dir, "02-experiment", "log")
-    # extract relevant information from log filename
+
+    # TODO conditional of vr-rl
+    path_files = path.join(working_dir, '02-experiment', 'log_vr_eyetracking')
     subject_id = 'subject_' + str.split(log_file_name, '_')[2]
     part_id = 'session_' + str.split(log_file_name, '_')[4][:-4]
     video_id = log_file_name[18:-4]
 
     path_files = path.join(path_files, subject_id)
-    print("path_files:\t", path_files)
+    print('path_files:\t', path_files)
 
     log_file = path.join(path_files, log_file_name)
-    print("log_file:\t", log_file)
+    print('log_file:\t', log_file)
 
     # directory of frames
     frame_dir = path.join(path_files, 'frames', video_id)
@@ -294,8 +330,8 @@ def drawFixation(log_file_name, frame_directory='frames'):
 
     # output directory
     out_dir = path.join(
-        working_dir, "03-postprocessing",
-        "fixations", "log_fixations", subject_id)
+        working_dir, '03-postprocessing',
+        'fixations', 'log_fixations', subject_id)
 
     # check if file and folder already exist
     if not path.isdir(out_dir):
@@ -316,7 +352,7 @@ def drawFixation(log_file_name, frame_directory='frames'):
     counter = 0
     while counter < len(frames):
 
-        frame_screenshot, video_id, frame_id, gaze_pos_x, gaze_pos_y = getFrameInformation(frames[counter], frame_dir)
+        frame_screenshot, frame_id, gaze_pos_x, gaze_pos_y = getFrameInformation(frames[counter], video_id, frame_dir)
 
         img, missing = checkScreenshot(frame_screenshot)
 
@@ -436,5 +472,18 @@ def drawFixation(log_file_name, frame_directory='frames'):
         if next_frame is False:
             break
 
+def presentImage(img):
+    
+    """
+    Presents given img to rater for rating
+    """
+
+def runFixationCoder():
+
+    """
+    Starts fixation coder
+    """
 
 drawFixation(LOG_FILE)
+# runFixationCoder()
+
