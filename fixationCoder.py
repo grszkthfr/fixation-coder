@@ -8,6 +8,7 @@ settings section and have fun coding. :-)
 """
 from os import path
 import os
+import glob
 import csv
 import cv2
 import numpy as np
@@ -16,9 +17,6 @@ import itertools
 #############################################################################
 ################# Settings  #################################################
 #############################################################################
-
-# log file
-LOG_FILE = 'log_2019-01-30_99_2.8_2.txt'
 
 # keys
 KEY_FIX_PERSON = 49         # key "1" to code a fixation_id on a person
@@ -116,50 +114,6 @@ def deleteLine(out_file):
             writer.writerow(row)
 
 
-def readFrames(LOG_FILE):
-
-    """
-    Funciton doctring
-    """
-
-    with open(LOG_FILE, 'r') as f:
-
-        READER = csv.reader(f, delimiter='\t')
-        all_frames = list(READER)
-        frames = onlyScreenshotFrames(all_frames)
-        # print(frames[:5])
-
-    return frames
-
-
-def onlyScreenshotFrames(ALL_FRAMES):
-
-    """
-    Funciton doctring
-    """
-
-    screenshot_frames = []
-    for row in ALL_FRAMES[1:]:      # except header
-        # video recording starts with frame 230 (250 frames black in the beginning) and video ends at frame 1040, black
-        if int(row[3]) % 10 == 0 and 230 <= int(row[3]) <= 1040:
-
-            # print(row)
-            screenshot_frames.append(row)
-
-    # print(screenshot_frames)
-    return screenshot_frames
-
-
-# TODO feature saving screenshots?
-def saveScreenshotWithFixation(FRAME):
-    
-    """
-    Funciton doctring
-    """
-    
-    print('TODO')
-
-
 # TODO handle keys
 def handleInput(NEXT_FRAME):
 
@@ -169,57 +123,6 @@ def handleInput(NEXT_FRAME):
 
     print('TODO')
 
-def checkScreenshot(frame_screenshot):
-
-    """
-    Check whether screenshot for the given path of the specific frame exists and return black image with warning when missing.
-    Only relevant for frames from the vr.
-    """
-
-    # check if file is missing
-    if not os.path.isfile(frame_screenshot):
-
-        img = np.zeros((840, 756, 3), np.uint8)
-
-        # text
-        cv2.putText(
-            img,
-            'MISSING SCREENSHOT!', (75, 378),
-            cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255))
-
-        missing_screenshot = True
-
-    else:
-
-        missing_screenshot = False
-        img = cv2.imread(frame_screenshot)
-
-    return img, missing_screenshot
-
-
-def getFrameInformation(frame_row, video_id, frame_dir):
-
-    """
-    Extracts frame information (gaze position, video and frame id) from the log_vr-file and returns file path to according screenshot and all the ids.
-    Only relevant for frames from the vr.
-    """
-
-    # check if video_id from file name is the same in log_vr-file
-    if not video_id == frame_row[2]:
-        # TODO
-        print("error video ids not the same!")
-
-    else:
-        frame_id = frame_row[3]
-        gaze_pos_x = int(float(frame_row[4])/2)
-        gaze_pos_y = int(float(frame_row[5])/2)
-
-        frame_screenshot = video_id + '_' + 'frame_' + frame_id + '.ppm'
-        print('current frame:\t\t', frame_screenshot)
-        frame_screenshot = path.join(frame_dir, frame_screenshot)
-        frame_screenshot = path.abspath(frame_screenshot)
-
-        return frame_screenshot, frame_id, gaze_pos_x, gaze_pos_y
 
 # TODO
 def checkInputKey(key1, key2):
@@ -280,19 +183,6 @@ def togglePersonInScene():
     Function docstring
     """
 
-# ? not sure
-def prepareVR():
-
-    """
-    prepares VR frames
-    """
-
-# ? not sure
-def prepareRL():
-
-    """
-    prepares RL frames, basically extracts for all given files (videos) frames in a directory and returns list of all (every 10th or so) file names.
-    """
 
 # TODO
 def prepareFrames():
@@ -303,80 +193,35 @@ def prepareFrames():
     """
 
 
-# TODO split function!
-def drawFixation(log_file_name, frame_directory='frames'):
+def runFixationCoder(path_to_frames):
 
-    """
-    This function does way to much!
-    """
+    all_frames = []
+    all_frames.extend(
+        glob.glob(os.path.join(path_to_frames, "*.png")))
 
-    working_dir = here()
-
-    # TODO conditional of vr-rl
-    path_files = path.join(working_dir, '02-experiment', 'log_vr_eyetracking')
-    subject_id = 'subject_' + str.split(log_file_name, '_')[2]
-    part_id = 'session_' + str.split(log_file_name, '_')[4][:-4]
-    video_id = log_file_name[18:-4]
-
-    path_files = path.join(path_files, subject_id)
-    print('path_files:\t', path_files)
-
-    log_file = path.join(path_files, log_file_name)
-    print('log_file:\t', log_file)
-
-    # directory of frames
-    frame_dir = path.join(path_files, 'frames', video_id)
-    frame_dir = path.abspath(frame_dir)
-
-    # output directory
-    out_dir = path.join(
-        working_dir, '03-postprocessing',
-        'fixations', 'log_fixations', subject_id)
-
-    # check if file and folder already exist
-    if not path.isdir(out_dir):
-        os.makedirs(out_dir)  # throws an error when failing
-
-    out_file = path.join(
-        out_dir, str.split(subject_id, '_')[1] + '_' + video_id + '.txt')
-    # print(out_file)
-
-    frames = readFrames(log_file)
-    # print(frames[:5])
+    #print(all_frames)
+    print(all_frames[:5])
     fixation_id = 'choose from 1 - 4'
     person_in_scene = 'toggle with *p*'
 
     # initialize toggle
     toggle_person_in_scene = True
+    missing = False
 
     counter = 0
-    while counter < len(frames):
+    while counter < len(all_frames):
 
-        frame_screenshot, frame_id, gaze_pos_x, gaze_pos_y = getFrameInformation(frames[counter], video_id, frame_dir)
+        frame_id = all_frames[counter][-8:-4]
+        frame_img = cv2.imread(all_frames[counter])
+        print(frame_id)
+        updateImageInformation(frame_img, frame_id, fixation_id, person_in_scene)
+        cv2.imshow('frame', frame_img)
 
-        img, missing = checkScreenshot(frame_screenshot)
-
-        if not missing:
-
-            gaze_position = (gaze_pos_x, gaze_pos_y)  # 216
-            cv2.circle(img, gaze_position, 3, (0, 255, 255), 2)
-            img = cv2.flip(img, 0)  # 0 = horizontal, 1 = vertical, -1 = both
-
-            updateImageInformation(img, frame_id, fixation_id, person_in_scene)
-
-            cv2.imshow('frame', img)
-
-        else:
-
-            writeLine(
-                out_file, subject_id, video_id, frame_id, 'NO_SCREENSHOT',
-                'NO_SCREENSHOT')
-            counter += 1
 
         next_frame = True
         while next_frame and not missing:
 
-            cv2.imshow('frame', img)
+            cv2.imshow('frame', frame_img)
 
             k = cv2.waitKey(33)
 
@@ -403,39 +248,39 @@ def drawFixation(log_file_name, frame_directory='frames'):
                 else:
                     person_in_scene = 'person_in_scene'
 
-                updateImageInformation(img, frame_id, fixation_id,
+                updateImageInformation(frame_img, frame_id, fixation_id,
                                        person_in_scene)
 
             # fixations with person
             elif k == KEY_FIX_PERSON and not missing:  # #1
                 fixation_id = 'person'
-                updateImageInformation(img, frame_id, fixation_id,
+                updateImageInformation(frame_img, frame_id, fixation_id,
                                        person_in_scene)
 
             elif k == KEY_FIX_OBJECT_MOVING and not missing:  # #2
                 fixation_id = 'object_moving'
-                updateImageInformation(img, frame_id, fixation_id,
+                updateImageInformation(frame_img, frame_id, fixation_id,
                                        person_in_scene)
 
             elif k == KEY_FIX_OBJECT_STATIC and not missing:  # #3
                 fixation_id = 'object_static'
-                updateImageInformation(img, frame_id, fixation_id,
+                updateImageInformation(frame_img, frame_id, fixation_id,
                                        person_in_scene)
 
             elif k == KEY_FIX_BACKGROUND and not missing:  # #4
                 fixation_id = 'background'
-                updateImageInformation(img, frame_id, fixation_id,
+                updateImageInformation(frame_img, frame_id, fixation_id,
                                        person_in_scene)
 
             # special keys
             elif k == KEY_NO_FIXATION and not missing:  # n
                 fixation_id = 'no_fixation'
-                updateImageInformation(img, frame_id, fixation_id,
+                updateImageInformation(frame_img, frame_id, fixation_id,
                                        person_in_scene)
 
             elif k == KEY_DELETE_FRAME:  # d
                 fixation_id = 'delete'
-                updateImageInformation(img, frame_id, fixation_id,
+                updateImageInformation(frame_img, frame_id, fixation_id,
                                        person_in_scene)
 
             # ! WIP make a "valid_key = TRUE"
@@ -443,14 +288,14 @@ def drawFixation(log_file_name, frame_directory='frames'):
 
                 if fixation_id != 'delete':
                     counter += 1
-                    writeLine(
-                        out_file, subject_id, video_id, frame_id,
-                        fixation_id, person_in_scene)
+                    # writeLine(
+                    #     out_file, subject_id, video_id, frame_id,
+                    #     fixation_id, person_in_scene)
 
                 elif fixation_id == 'delete':
                     counter -= 1
                     fixation_id = 'deleted'
-                    deleteLine(out_file)
+                    # deleteLine(out_file)
 
                 break
 
@@ -478,12 +323,10 @@ def presentImage(img):
     Presents given img to rater for rating
     """
 
-def runFixationCoder():
+# log file
+LOG_FILE = path.join(here(), '03-preprocessing', 'frames_with_gaze', '99', 'txt', '2.8', '2')
 
-    """
-    Starts fixation coder
-    """
 
-drawFixation(LOG_FILE)
+runFixationCoder(LOG_FILE)
 # runFixationCoder()
 
