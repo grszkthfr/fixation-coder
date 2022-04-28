@@ -11,8 +11,7 @@ import os
 import glob
 import csv
 import cv2
-import numpy as np
-import itertools
+# import numpy as np
 
 #############################################################################
 ################# Settings  #################################################
@@ -32,6 +31,7 @@ KEY_NEXT_FRAME = 32         # key "space" to write line, go to next frame
 KEY_EXIT = 27
 
 #############################################################################
+
 
 def here(file_name='.here'):
 
@@ -58,6 +58,7 @@ def here(file_name='.here'):
                 current_dir = parent_dir
 
     return current_dir
+
 
 def writeLine(
     out_file, subject_id, video_id, frame_id, fixation_id, person_in_scene):
@@ -86,7 +87,6 @@ def writeLine(
             fixation_id, person_in_scene])
 
     # save_file.close() # needed? to safely delete rows
-
 
 def deleteLine(out_file):
 
@@ -317,11 +317,13 @@ def runFixationCoder(path_to_frames):
         if next_frame is False:
             break
 
+
 def presentImage(img):
-    
+
     """
     Presents given img to rater for rating
     """
+
 
 # log file
 LOG_FILE = path.join(here(), '03-preprocessing', 'frames_with_gaze', '99', 'txt', '2.8', '2')
@@ -329,4 +331,3 @@ LOG_FILE = path.join(here(), '03-preprocessing', 'frames_with_gaze', '99', 'txt'
 
 runFixationCoder(LOG_FILE)
 # runFixationCoder()
-
